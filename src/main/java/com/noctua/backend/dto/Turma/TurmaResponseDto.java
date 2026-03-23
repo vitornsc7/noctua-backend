@@ -14,7 +14,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 
-public class TurmaResponseDto {
+public class TurmaResponseDTO {
     private Long id;
     private String nome;
     private LocalDate anoLetivo;
