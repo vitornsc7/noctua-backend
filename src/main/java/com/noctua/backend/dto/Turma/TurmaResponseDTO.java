@@ -1,7 +1,9 @@
 package com.noctua.backend.dto.Turma;
 
 import java.time.LocalDate;
+import java.util.List;
 
+import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
 import com.noctua.backend.enums.Turno;
 
 import lombok.AllArgsConstructor;
@@ -23,5 +25,6 @@ public class TurmaResponseDTO {
     private Turno turno;
     private String disciplina;
     private Double mediaMinima;
-    
+    private List<AlunoResponseDTO> alunos;
+    private Integer alunosCount;
 }
