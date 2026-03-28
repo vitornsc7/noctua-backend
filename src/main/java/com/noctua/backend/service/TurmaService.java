@@ -84,7 +84,7 @@ public class TurmaService {
                 AlunoResponseDTO alunoDTO = new AlunoResponseDTO();
                 alunoDTO.setId(aluno.getId());
                 alunoDTO.setNome(aluno.getNome());
-                alunoDTO.setDescricao(aluno.getDescricao());
+                alunoDTO.setObservacao(aluno.getObservacao());
                 alunoDTO.setAtivo(aluno.getAtivo());
                 alunoDTO.setTurmaId(entity.getId());
                 return alunoDTO;

@@ -12,7 +12,7 @@ import lombok.Setter;
 
 public class AlunoRequestDTO {
     private String nome;
-    private String descricao;
+    private String observacao;
     private Boolean ativo;
     private Long turmaId;
 }

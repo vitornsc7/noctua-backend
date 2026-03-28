@@ -26,7 +26,7 @@ public class AlunoService {
 
         AlunoEntity entity = new AlunoEntity();
         entity.setNome(request.getNome());
-        entity.setDescricao(request.getDescricao());
+        entity.setObservacao(request.getObservacao());
         entity.setAtivo(request.getAtivo() != null ? request.getAtivo() : true);
         entity.setTurma(turma);
 
@@ -52,7 +52,7 @@ public class AlunoService {
                 .orElseThrow(() -> new RuntimeException("Aluno não encontrado"));
 
         entity.setNome(request.getNome());
-        entity.setDescricao(request.getDescricao());
+        entity.setObservacao(request.getObservacao());
         if (request.getAtivo() != null) {
             entity.setAtivo(request.getAtivo());
         }
@@ -72,7 +72,7 @@ public class AlunoService {
         AlunoResponseDTO dto = new AlunoResponseDTO();
         dto.setId(entity.getId());
         dto.setNome(entity.getNome());
-        dto.setDescricao(entity.getDescricao());
+        dto.setObservacao(entity.getObservacao());
         dto.setAtivo(entity.getAtivo());
         dto.setTurmaId(entity.getTurma().getId());
         return dto;

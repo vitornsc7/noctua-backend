@@ -39,7 +39,7 @@ public class AlunoEntity {
     @Column(nullable = false)
     private String nome;
 
-    private String descricao;
+    private String observacao;
 
     @Column(nullable = false)
     private Boolean ativo;
