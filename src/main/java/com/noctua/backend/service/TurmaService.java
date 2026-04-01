@@ -1,13 +1,18 @@
 package com.noctua.backend.service;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.noctua.backend.dto.Turma.TurmaRequestDTO;
 import com.noctua.backend.dto.Turma.TurmaResponseDTO;
 import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
 import com.noctua.backend.entity.Turma.TurmaEntity;
+import com.noctua.backend.enums.Turno;
 import com.noctua.backend.repository.TurmaRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -27,16 +32,28 @@ public class TurmaService {
         entity.setTurno(request.getTurno());
         entity.setDisciplina(request.getDisciplina());
         entity.setMediaMinima(request.getMediaMinima());
+        entity.setInstituicao(request.getInstituicao());
 
         TurmaEntity salva = turmaRepository.save(entity);
         return toResponseDTO(salva);
     }
 
-    public List<TurmaResponseDTO> listarTodas() {
-        return turmaRepository.findAll()
-                .stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public Page<TurmaResponseDTO> listar(Pageable pageable, String turno, String anoLetivo) {
+        Specification<TurmaEntity> spec = Specification.where(null);
+
+        if (turno != null && !turno.isBlank()) {
+            Turno turnoEnum = Turno.valueOf(turno.toUpperCase());
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("turno"), turnoEnum));
+        }
+
+        if (anoLetivo != null && !anoLetivo.isBlank()) {
+            int ano = Integer.parseInt(anoLetivo);
+            LocalDate start = LocalDate.of(ano, 1, 1);
+            LocalDate end = LocalDate.of(ano, 12, 31);
+            spec = spec.and((root, query, cb) -> cb.between(root.get("anoLetivo"), start, end));
+        }
+
+        return turmaRepository.findAll(spec, pageable).map(this::toResponseDTO);
     }
 
     public TurmaResponseDTO buscarPorId(Long id) {
@@ -56,6 +73,7 @@ public class TurmaService {
         entity.setTurno(request.getTurno());
         entity.setDisciplina(request.getDisciplina());
         entity.setMediaMinima(request.getMediaMinima());
+        entity.setInstituicao(request.getInstituicao());
 
         TurmaEntity salva = turmaRepository.save(entity);
         return toResponseDTO(salva);
@@ -78,6 +96,7 @@ public class TurmaService {
         dto.setTurno(entity.getTurno());
         dto.setDisciplina(entity.getDisciplina());
         dto.setMediaMinima(entity.getMediaMinima());
+        dto.setInstituicao(entity.getInstituicao());
 
         if (entity.getAlunos() != null) {
             List<AlunoResponseDTO> alunosDTO = entity.getAlunos().stream().map(aluno -> {
