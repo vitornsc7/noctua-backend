@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Turma.TurmaRequestDTO;
 import com.noctua.backend.dto.Turma.TurmaResponseDTO;
+import com.noctua.backend.dto.Turma.TurmaFiltrosDTO;
 import com.noctua.backend.service.TurmaService;
 
 import lombok.RequiredArgsConstructor;
@@ -37,12 +38,18 @@ public class TurmaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @GetMapping("/filtros")
+    public ResponseEntity<TurmaFiltrosDTO> buscarFiltros() {
+        return ResponseEntity.ok(turmaService.buscarFiltros());
+    }
+
     @GetMapping
     public ResponseEntity<Page<TurmaResponseDTO>> listar(
             @PageableDefault(size = 10, sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
             @RequestParam(required = false) String turno,
-            @RequestParam(required = false) String anoLetivo) {
-        return ResponseEntity.ok(turmaService.listar(pageable, turno, anoLetivo));
+            @RequestParam(required = false) String anoLetivo,
+            @RequestParam(required = false) String instituicao) {
+        return ResponseEntity.ok(turmaService.listar(pageable, turno, anoLetivo, instituicao));
     }
 
     @GetMapping("/{id}")

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.noctua.backend.dto.Turma.TurmaRequestDTO;
 import com.noctua.backend.dto.Turma.TurmaResponseDTO;
+import com.noctua.backend.dto.Turma.TurmaFiltrosDTO;
 import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
 import com.noctua.backend.entity.Turma.TurmaEntity;
 import com.noctua.backend.enums.Turno;
@@ -38,7 +39,7 @@ public class TurmaService {
         return toResponseDTO(salva);
     }
 
-    public Page<TurmaResponseDTO> listar(Pageable pageable, String turno, String anoLetivo) {
+    public Page<TurmaResponseDTO> listar(Pageable pageable, String turno, String anoLetivo, String instituicao) {
         Specification<TurmaEntity> spec = Specification.where(null);
 
         if (turno != null && !turno.isBlank()) {
@@ -53,7 +54,17 @@ public class TurmaService {
             spec = spec.and((root, query, cb) -> cb.between(root.get("anoLetivo"), start, end));
         }
 
+        if (instituicao != null && !instituicao.isBlank()) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("instituicao"), instituicao));
+        }
+
         return turmaRepository.findAll(spec, pageable).map(this::toResponseDTO);
+    }
+
+    public TurmaFiltrosDTO buscarFiltros() {
+        return new TurmaFiltrosDTO(
+                turmaRepository.findDistinctAnos(),
+                turmaRepository.findDistinctInstituicoes());
     }
 
     public TurmaResponseDTO buscarPorId(Long id) {
