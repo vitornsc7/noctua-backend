@@ -1,7 +1,9 @@
 package com.noctua.backend.controller;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Turma.TurmaRequestDTO;
@@ -35,8 +38,11 @@ public class TurmaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TurmaResponseDTO>> listarTodas() {
-        return ResponseEntity.ok(turmaService.listarTodas());
+    public ResponseEntity<Page<TurmaResponseDTO>> listar(
+            @PageableDefault(size = 10, sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
+            @RequestParam(required = false) String turno,
+            @RequestParam(required = false) String anoLetivo) {
+        return ResponseEntity.ok(turmaService.listar(pageable, turno, anoLetivo));
     }
 
     @GetMapping("/{id}")

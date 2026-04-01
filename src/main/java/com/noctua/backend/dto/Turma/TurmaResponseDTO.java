@@ -27,4 +27,5 @@ public class TurmaResponseDTO {
     private Double mediaMinima;
     private List<AlunoResponseDTO> alunos;
     private Integer alunosCount;
+    private String instituicao;
 }
