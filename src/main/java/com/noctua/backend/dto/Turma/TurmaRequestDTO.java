@@ -22,5 +22,5 @@ public class TurmaRequestDTO {
     private Turno turno;
     private String disciplina;
     private Double mediaMinima;
-
+    private String instituicao;
 }

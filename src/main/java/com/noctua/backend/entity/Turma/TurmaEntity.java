@@ -53,8 +53,11 @@ public class TurmaEntity {
     @Column(nullable = false)
     private Turno turno;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String disciplina;
+
+    @Column(nullable = true)
+    private String instituicao;
 
     @Column(nullable = false)
     private double mediaMinima;
