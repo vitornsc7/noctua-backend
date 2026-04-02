@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.noctua.backend.dto.Usuario.ProfessorRequestDTO;
 import com.noctua.backend.entity.Usuario.ProfessorEntity;
+import com.noctua.backend.entity.Usuario.UsuarioEntity;
 import com.noctua.backend.repository.ProfessorRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -33,13 +34,20 @@ public class ProfessorService {
             throw new IllegalArgumentException("CPF já cadastrado.");
         }
 
-        ProfessorEntity professor = new ProfessorEntity();
-        professor.setNome(professorRequestDTO.getNome());
-        professor.setEmail(professorRequestDTO.getEmail());
-        professor.setCpf(professorRequestDTO.getCpf());
-        professor.setSenhaHash(passwordEncoder.encode(professorRequestDTO.getSenha()));
-        professor.setAtivo(true);
+        ProfessorEntity professor = ProfessorEntity.builder()
+            .usuario(criarUsuario(professorRequestDTO))
+            .cpf(professorRequestDTO.getCpf())
+            .build();
 
         professorRepository.save(professor);
+    }
+
+    private UsuarioEntity criarUsuario(ProfessorRequestDTO dto) {
+        return UsuarioEntity.builder()
+            .nome(dto.getNome())
+            .email(dto.getEmail())
+            .senhaHash(passwordEncoder.encode(dto.getSenha()))
+            .ativo(true)
+            .build();
     }
 }
