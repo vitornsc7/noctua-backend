@@ -7,14 +7,16 @@ import com.noctua.backend.dto.Usuario.ProfessorRequestDTO;
 import com.noctua.backend.entity.Usuario.ProfessorEntity;
 import com.noctua.backend.entity.Usuario.UsuarioEntity;
 import com.noctua.backend.repository.ProfessorRepository;
+import com.noctua.backend.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-
 public class ProfessorService {
+
     private final ProfessorRepository professorRepository;
+    private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
 
     public void cadastrarProfessor(ProfessorRequestDTO professorRequestDTO) {
@@ -26,7 +28,7 @@ public class ProfessorService {
             throw new IllegalArgumentException("Todos os campos são obrigatórios.");
         }
 
-        if (professorRepository.findByEmail(professorRequestDTO.getEmail()).isPresent()) {
+        if (usuarioRepository.existsByEmail(professorRequestDTO.getEmail())) {
             throw new IllegalArgumentException("E-mail já cadastrado.");
         }
 
@@ -35,19 +37,19 @@ public class ProfessorService {
         }
 
         ProfessorEntity professor = ProfessorEntity.builder()
-            .usuario(criarUsuario(professorRequestDTO))
-            .cpf(professorRequestDTO.getCpf())
-            .build();
+                .usuario(criarUsuario(professorRequestDTO))
+                .cpf(professorRequestDTO.getCpf())
+                .build();
 
         professorRepository.save(professor);
     }
 
     private UsuarioEntity criarUsuario(ProfessorRequestDTO dto) {
         return UsuarioEntity.builder()
-            .nome(dto.getNome())
-            .email(dto.getEmail())
-            .senhaHash(passwordEncoder.encode(dto.getSenha()))
-            .ativo(true)
-            .build();
+                .nome(dto.getNome())
+                .email(dto.getEmail())
+                .senhaHash(passwordEncoder.encode(dto.getSenha()))
+                .ativo(true)
+                .build();
     }
 }

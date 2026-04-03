@@ -8,7 +8,9 @@ import com.noctua.backend.entity.Usuario.ProfessorEntity;
 
 public interface ProfessorRepository extends JpaRepository<ProfessorEntity, Long> {
 
-    Optional<ProfessorEntity> findByEmail(String email);
+    Optional<ProfessorEntity> findByUsuarioEmail(String email);
 
     Optional<ProfessorEntity> findByCpf(String cpf);
+
+    boolean existsByCpf(String cpf);
 }
