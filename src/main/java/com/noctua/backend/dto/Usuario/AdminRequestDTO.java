@@ -11,6 +11,7 @@ import lombok.Setter;
 public class AdminRequestDTO {
 
     private String nome;
+    private String email;
     private String senha;
     
 }
