@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Login.LoginRequestDTO;
+import com.noctua.backend.dto.Login.LoginResponseDTO;
 import com.noctua.backend.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -19,10 +20,10 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequestDTO dto) {
+    public ResponseEntity<?> login(@RequestBody LoginRequestDTO dto) {
         try {
-            authService.login(dto);
-            return ResponseEntity.ok("Login realizado com sucesso.");
+            String token = authService.login(dto);
+            return ResponseEntity.ok(new LoginResponseDTO(token));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
