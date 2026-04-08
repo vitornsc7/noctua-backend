@@ -25,7 +25,7 @@ import com.noctua.backend.service.TurmaService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/turmas")
+@RequestMapping("/turmas")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class TurmaController {

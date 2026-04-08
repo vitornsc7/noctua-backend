@@ -21,7 +21,7 @@ import com.noctua.backend.service.AlunoService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/turmas/{turmaId}/alunos")
+@RequestMapping("/turmas/{turmaId}/alunos")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class AlunoController {
