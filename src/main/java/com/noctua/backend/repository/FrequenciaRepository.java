@@ -11,4 +11,6 @@ import com.noctua.backend.entity.Frequencia.FrequenciaEntity;
 public interface FrequenciaRepository extends JpaRepository<FrequenciaEntity, Long> {
 
     List<FrequenciaEntity> findByAlunoId(Long alunoId);
+
+    List<FrequenciaEntity> findByAluno_TurmaId(Long turmaId);
 }
