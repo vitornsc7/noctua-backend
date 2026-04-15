@@ -1,4 +1,4 @@
-package com.noctua.backend.controller;
+package com.noctua.backend.controller.turma;
 
 import java.util.List;
 
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Aluno.AlunoRequestDTO;
 import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
-import com.noctua.backend.service.AlunoService;
+import com.noctua.backend.service.usuario.AlunoService;
 
 import lombok.RequiredArgsConstructor;
 

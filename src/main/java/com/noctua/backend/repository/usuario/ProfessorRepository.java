@@ -1,4 +1,4 @@
-package com.noctua.backend.repository;
+package com.noctua.backend.repository.usuario;
 
 import java.util.Optional;
 

@@ -3,9 +3,10 @@ package com.noctua.backend.config;
 import com.noctua.backend.entity.Usuario.AdminEntity;
 import com.noctua.backend.entity.Usuario.ProfessorEntity;
 import com.noctua.backend.entity.Usuario.UsuarioEntity;
-import com.noctua.backend.repository.AdminRepository;
-import com.noctua.backend.repository.ProfessorRepository;
-import com.noctua.backend.repository.UsuarioRepository;
+import com.noctua.backend.repository.usuario.AdminRepository;
+import com.noctua.backend.repository.usuario.ProfessorRepository;
+import com.noctua.backend.repository.usuario.UsuarioRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;

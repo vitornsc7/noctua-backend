@@ -1,4 +1,4 @@
-package com.noctua.backend.repository;
+package com.noctua.backend.repository.turma;
 
 import java.util.List;
 

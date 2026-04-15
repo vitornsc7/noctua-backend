@@ -1,4 +1,4 @@
-package com.noctua.backend.controller;
+package com.noctua.backend.controller.turma;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Turma.TurmaRequestDTO;
 import com.noctua.backend.dto.Turma.TurmaResponseDTO;
+import com.noctua.backend.service.turma.TurmaService;
 import com.noctua.backend.dto.Turma.TurmaFiltrosDTO;
-import com.noctua.backend.service.TurmaService;
 
 import lombok.RequiredArgsConstructor;
 

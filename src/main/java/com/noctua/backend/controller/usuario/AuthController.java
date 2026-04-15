@@ -1,4 +1,4 @@
-package com.noctua.backend.controller;
+package com.noctua.backend.controller.usuario;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Login.LoginRequestDTO;
 import com.noctua.backend.dto.Login.LoginResponseDTO;
-import com.noctua.backend.service.AuthService;
+import com.noctua.backend.service.usuario.AuthService;
 
 import lombok.RequiredArgsConstructor;
 

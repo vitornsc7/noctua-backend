@@ -1,4 +1,4 @@
-package com.noctua.backend.controller;
+package com.noctua.backend.controller.usuario;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Usuario.ProfessorRequestDTO;
-import com.noctua.backend.service.ProfessorService;
+import com.noctua.backend.service.usuario.ProfessorService;
 
 import lombok.RequiredArgsConstructor;
 

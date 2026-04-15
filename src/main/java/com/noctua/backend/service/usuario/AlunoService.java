@@ -1,4 +1,4 @@
-package com.noctua.backend.service;
+package com.noctua.backend.service.usuario;
 
 import java.util.List;
 
@@ -8,8 +8,8 @@ import com.noctua.backend.dto.Aluno.AlunoRequestDTO;
 import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
 import com.noctua.backend.entity.Aluno.AlunoEntity;
 import com.noctua.backend.entity.Turma.TurmaEntity;
-import com.noctua.backend.repository.AlunoRepository;
-import com.noctua.backend.repository.TurmaRepository;
+import com.noctua.backend.repository.turma.AlunoRepository;
+import com.noctua.backend.repository.turma.TurmaRepository;
 
 import lombok.RequiredArgsConstructor;
 

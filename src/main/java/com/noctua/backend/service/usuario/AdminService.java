@@ -1,4 +1,4 @@
-package com.noctua.backend.service;
+package com.noctua.backend.service.usuario;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -6,8 +6,8 @@ import org.springframework.stereotype.Service;
 import com.noctua.backend.dto.Usuario.AdminRequestDTO;
 import com.noctua.backend.entity.Usuario.AdminEntity;
 import com.noctua.backend.entity.Usuario.UsuarioEntity;
-import com.noctua.backend.repository.AdminRepository;
-import com.noctua.backend.repository.UsuarioRepository;
+import com.noctua.backend.repository.usuario.AdminRepository;
+import com.noctua.backend.repository.usuario.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
