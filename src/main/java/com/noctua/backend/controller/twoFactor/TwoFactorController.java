@@ -1,4 +1,4 @@
-package com.noctua.backend.controller;
+package com.noctua.backend.controller.twoFactor;
 
 import java.time.LocalDateTime;
 
@@ -7,12 +7,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import com.noctua.backend.dto.TwoFactorSetupResponseDTO;
-import com.noctua.backend.dto.TwoFactorVerifySetupRequestDTO;
 import com.noctua.backend.dto.twoFactor.TwoFactorSetupResponseDTO;
 import com.noctua.backend.entity.Usuario.UsuarioEntity;
 import com.noctua.backend.repository.usuario.UsuarioRepository;
-import com.noctua.backend.service.TwoFactorService;
 import com.noctua.backend.service.twoFactor.TwoFactorService;
 
 import jakarta.validation.Valid;
