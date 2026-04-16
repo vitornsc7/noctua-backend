@@ -7,4 +7,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public class LoginResponseDTO {
     private String token;
+    private boolean requiresTwoFactor;
+    private String message;
 }

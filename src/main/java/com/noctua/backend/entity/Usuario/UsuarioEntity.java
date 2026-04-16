@@ -12,10 +12,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "usuarios")
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -43,5 +45,18 @@ public class UsuarioEntity {
 
     @Column
     private LocalDateTime tokenSenhaExpiracao;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean twoFactorEnabled = false;
+
+    @Column(length = 255)
+    private String twoFactorSecret;
+
+    @Column(length = 255)
+    private String twoFactorTempSecret;
+
+    @Column
+    private LocalDateTime twoFactorConfirmedAt;
 
 }

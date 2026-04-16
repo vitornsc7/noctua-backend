@@ -1,4 +1,4 @@
-package com.noctua.backend.service;
+package com.noctua.backend.service.turma;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,7 +14,7 @@ import com.noctua.backend.dto.Turma.TurmaRequestDTO;
 import com.noctua.backend.dto.Turma.TurmaResponseDTO;
 import com.noctua.backend.entity.Turma.TurmaEntity;
 import com.noctua.backend.enums.Turno;
-import com.noctua.backend.repository.TurmaRepository;
+import com.noctua.backend.repository.turma.TurmaRepository;
 
 import lombok.RequiredArgsConstructor;
 
