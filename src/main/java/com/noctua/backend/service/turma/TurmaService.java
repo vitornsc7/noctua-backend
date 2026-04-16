@@ -8,10 +8,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
+import com.noctua.backend.dto.Turma.TurmaFiltrosDTO;
 import com.noctua.backend.dto.Turma.TurmaRequestDTO;
 import com.noctua.backend.dto.Turma.TurmaResponseDTO;
-import com.noctua.backend.dto.Turma.TurmaFiltrosDTO;
-import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
 import com.noctua.backend.entity.Turma.TurmaEntity;
 import com.noctua.backend.enums.Turno;
 import com.noctua.backend.repository.turma.TurmaRepository;
