@@ -40,6 +40,10 @@ public class UsuarioEntity {
     @Column(nullable = false)
     private Boolean ativo;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean tokenSenhaUtilizado = false;
+
     @Column
     private String tokenSenhaReset;
 
