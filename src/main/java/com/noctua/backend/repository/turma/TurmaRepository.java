@@ -14,13 +14,13 @@ import com.noctua.backend.entity.Turma.TurmaEntity;
 @Repository
 public interface TurmaRepository extends JpaRepository<TurmaEntity, Long>, JpaSpecificationExecutor<TurmaEntity> {
 
-    Optional<TurmaEntity> findByIdAndProfessorId(Long id, Long professorId);
+    Optional<TurmaEntity> findByIdAndProfessorIdAndAtivoTrue(Long id, Long professorId);
 
-    boolean existsByIdAndProfessorId(Long id, Long professorId);
+    boolean existsByIdAndProfessorIdAndAtivoTrue(Long id, Long professorId);
 
-    @Query("SELECT DISTINCT YEAR(t.anoLetivo) FROM TurmaEntity t WHERE t.professor.id = :professorId ORDER BY 1 DESC")
+    @Query("SELECT DISTINCT YEAR(t.anoLetivo) FROM TurmaEntity t WHERE t.professor.id = :professorId AND t.ativo = true ORDER BY 1 DESC")
     List<Integer> findDistinctAnosByProfessorId(@Param("professorId") Long professorId);
 
-    @Query("SELECT DISTINCT t.instituicao FROM TurmaEntity t WHERE t.professor.id = :professorId AND t.instituicao IS NOT NULL AND t.instituicao <> '' ORDER BY t.instituicao ASC")
+    @Query("SELECT DISTINCT t.instituicao FROM TurmaEntity t WHERE t.professor.id = :professorId AND t.ativo = true AND t.instituicao IS NOT NULL AND t.instituicao <> '' ORDER BY t.instituicao ASC")
     List<String> findDistinctInstituicoesByProfessorId(@Param("professorId") Long professorId);
 }

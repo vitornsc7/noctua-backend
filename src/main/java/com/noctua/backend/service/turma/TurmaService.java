@@ -41,6 +41,7 @@ public class TurmaService {
         entity.setDisciplina(request.getDisciplina());
         entity.setMediaMinima(request.getMediaMinima());
         entity.setInstituicao(request.getInstituicao());
+        entity.setAtivo(true);
         entity.setProfessor(professor);
 
         TurmaEntity salva = turmaRepository.save(entity);
@@ -50,7 +51,8 @@ public class TurmaService {
     public Page<TurmaResponseDTO> listar(String emailProfessor, Pageable pageable, String turno, String anoLetivo,
             String instituicao) {
         ProfessorEntity professor = buscarProfessorAutenticado(emailProfessor);
-        Specification<TurmaEntity> spec = Specification.where(pertenceAoProfessor(professor.getId()));
+        Specification<TurmaEntity> spec = Specification.where(pertenceAoProfessor(professor.getId()))
+            .and(estaAtiva());
 
         if (turno != null && !turno.isBlank()) {
             Turno turnoEnum = Turno.valueOf(turno.toUpperCase());
@@ -101,10 +103,11 @@ public class TurmaService {
 
     public void deletar(String emailProfessor, Long id) {
         ProfessorEntity professor = buscarProfessorAutenticado(emailProfessor);
-        if (!turmaRepository.existsByIdAndProfessorId(id, professor.getId())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada");
-        }
-        turmaRepository.deleteById(id);
+        TurmaEntity entity = turmaRepository.findByIdAndProfessorIdAndAtivoTrue(id, professor.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada"));
+
+        entity.setAtivo(false);
+        turmaRepository.save(entity);
     }
 
     private ProfessorEntity buscarProfessorAutenticado(String emailProfessor) {
@@ -114,12 +117,16 @@ public class TurmaService {
 
     private TurmaEntity buscarTurmaDoProfessor(String emailProfessor, Long turmaId) {
         ProfessorEntity professor = buscarProfessorAutenticado(emailProfessor);
-        return turmaRepository.findByIdAndProfessorId(turmaId, professor.getId())
+        return turmaRepository.findByIdAndProfessorIdAndAtivoTrue(turmaId, professor.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada"));
     }
 
     private Specification<TurmaEntity> pertenceAoProfessor(Long professorId) {
         return (root, query, cb) -> cb.equal(root.get("professor").get("id"), professorId);
+    }
+
+    private Specification<TurmaEntity> estaAtiva() {
+        return (root, query, cb) -> cb.isTrue(root.get("ativo"));
     }
 
     private TurmaResponseDTO toResponseDTO(TurmaEntity entity) {
