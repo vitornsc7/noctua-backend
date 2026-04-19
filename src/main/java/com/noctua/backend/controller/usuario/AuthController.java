@@ -2,12 +2,15 @@ package com.noctua.backend.controller.usuario;
 
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import com.noctua.backend.dto.Login.LoginRequestDTO;
+import com.noctua.backend.dto.Usuario.AuthenticatedUserResponseDTO;
 import com.noctua.backend.dto.Usuario.ForgotPasswordRequestDTO;
 import com.noctua.backend.dto.Usuario.ResetPasswordRequestDTO;
 import com.noctua.backend.dto.twoFactor.TwoFactorVerifyLoginRequestDTO;
@@ -73,5 +76,10 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Erro interno ao redefinir senha.");
         }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<AuthenticatedUserResponseDTO> me(Authentication authentication) {
+        return ResponseEntity.ok(authService.buscarUsuarioAutenticado(authentication.getName()));
     }
 }

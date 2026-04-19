@@ -16,7 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/2fa")
+@RequestMapping("/2fa")
 @RequiredArgsConstructor
 @Validated
 public class TwoFactorController {
