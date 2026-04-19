@@ -65,6 +65,9 @@ public class TurmaEntity {
     @Column(nullable = false)
     private double mediaMinima;
 
+    @Column(nullable = false)
+    private Boolean ativo;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "professor_id", nullable = false)
     private ProfessorEntity professor;
