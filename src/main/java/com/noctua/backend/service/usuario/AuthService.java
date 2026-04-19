@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import com.noctua.backend.config.JwtUtil;
 import com.noctua.backend.dto.Login.LoginRequestDTO;
 import com.noctua.backend.dto.Login.LoginResponseDTO;
+import com.noctua.backend.dto.Usuario.AuthenticatedUserResponseDTO;
 import com.noctua.backend.dto.twoFactor.TwoFactorVerifyLoginRequestDTO;
 import com.noctua.backend.entity.Usuario.UsuarioEntity;
 import com.noctua.backend.repository.usuario.UsuarioRepository;
@@ -93,5 +94,12 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(dto.getEmail(), dto.isRememberMe());
         return new LoginResponseDTO(token, false, null);
+    }
+
+    public AuthenticatedUserResponseDTO buscarUsuarioAutenticado(String email) {
+        UsuarioEntity usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado!"));
+
+        return new AuthenticatedUserResponseDTO(usuario.getId(), usuario.getNome(), usuario.getEmail());
     }
 }
