@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.noctua.backend.entity.Aluno.AlunoEntity;
 import com.noctua.backend.entity.Avaliacao.AvaliacaoEntity;
+import com.noctua.backend.entity.Usuario.ProfessorEntity;
 import com.noctua.backend.enums.Turno;
 
 import jakarta.persistence.CascadeType;
@@ -15,6 +16,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -61,6 +64,10 @@ public class TurmaEntity {
 
     @Column(nullable = false)
     private double mediaMinima;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "professor_id", nullable = false)
+    private ProfessorEntity professor;
 
     @OneToMany(mappedBy = "turma", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AlunoEntity> alunos;
