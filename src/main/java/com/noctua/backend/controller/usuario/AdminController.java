@@ -1,13 +1,16 @@
 package com.noctua.backend.controller.usuario;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Usuario.AdminRequestDTO;
+import com.noctua.backend.dto.Usuario.AdminMonitoringResponseDTO;
 import com.noctua.backend.service.usuario.AdminService;
 
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,11 @@ import lombok.RequiredArgsConstructor;
 public class AdminController {
 
     private final AdminService adminService;
+
+    @GetMapping("/monitoramento")
+    public ResponseEntity<AdminMonitoringResponseDTO> monitoramento(Authentication authentication) {
+        return ResponseEntity.ok(adminService.buscarMonitoramento(authentication.getName()));
+    }
 
     @PostMapping
     public ResponseEntity<String> cadastrar(@RequestBody AdminRequestDTO adminRequestDTO) {

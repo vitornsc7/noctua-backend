@@ -9,6 +9,8 @@ import com.noctua.backend.dto.Login.LoginResponseDTO;
 import com.noctua.backend.dto.Usuario.AuthenticatedUserResponseDTO;
 import com.noctua.backend.dto.twoFactor.TwoFactorVerifyLoginRequestDTO;
 import com.noctua.backend.entity.Usuario.UsuarioEntity;
+import com.noctua.backend.repository.usuario.AdminRepository;
+import com.noctua.backend.repository.usuario.ProfessorRepository;
 import com.noctua.backend.repository.usuario.UsuarioRepository;
 import com.noctua.backend.service.twoFactor.TwoFactorService;
 
@@ -19,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
+    private final AdminRepository adminRepository;
+    private final ProfessorRepository professorRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final TwoFactorService twoFactorService;
@@ -100,6 +104,22 @@ public class AuthService {
         UsuarioEntity usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado!"));
 
-        return new AuthenticatedUserResponseDTO(usuario.getId(), usuario.getNome(), usuario.getEmail());
+        return new AuthenticatedUserResponseDTO(
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getEmail(),
+                resolverRole(email));
+    }
+
+    private String resolverRole(String email) {
+        if (adminRepository.findByUsuarioEmail(email).isPresent()) {
+            return "ADMIN";
+        }
+
+        if (professorRepository.findByUsuarioEmail(email).isPresent()) {
+            return "PROFESSOR";
+        }
+
+        throw new IllegalArgumentException("Perfil do usuário não encontrado!");
     }
 }
