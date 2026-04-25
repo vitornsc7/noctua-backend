@@ -13,6 +13,7 @@ import com.noctua.backend.repository.usuario.AdminRepository;
 import com.noctua.backend.repository.usuario.ProfessorRepository;
 import com.noctua.backend.repository.usuario.UsuarioRepository;
 import com.noctua.backend.service.twoFactor.TwoFactorService;
+import com.noctua.backend.dto.Usuario.UsuarioUpdateRequestDTO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -109,6 +110,47 @@ public class AuthService {
                 usuario.getNome(),
                 usuario.getEmail(),
                 resolverRole(email));
+    }
+
+    public AuthenticatedUserResponseDTO atualizarUsuarioAutenticado(
+            String emailAtual,
+            UsuarioUpdateRequestDTO dto) {
+        UsuarioEntity usuario = usuarioRepository.findByEmail(emailAtual)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado!"));
+
+        if (dto.getNome() != null && !dto.getNome().isBlank()) {
+            usuario.setNome(dto.getNome());
+        }
+
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()
+                && !dto.getEmail().equals(usuario.getEmail())) {
+
+            if (usuarioRepository.existsByEmail(dto.getEmail())) {
+                throw new IllegalArgumentException("E-mail já cadastrado.");
+            }
+
+            usuario.setEmail(dto.getEmail());
+        }
+
+        if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
+            usuario.setSenhaHash(passwordEncoder.encode(dto.getSenha()));
+        }
+
+        UsuarioEntity usuarioAtualizado = usuarioRepository.save(usuario);
+
+        return new AuthenticatedUserResponseDTO(
+                usuarioAtualizado.getId(),
+                usuarioAtualizado.getNome(),
+                usuarioAtualizado.getEmail(),
+                resolverRole(usuarioAtualizado.getEmail()));
+    }
+
+    public void excluirUsuarioAutenticado(String email) {
+        UsuarioEntity usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado!"));
+
+        usuario.setAtivo(false);
+        usuarioRepository.save(usuario);
     }
 
     private String resolverRole(String email) {
