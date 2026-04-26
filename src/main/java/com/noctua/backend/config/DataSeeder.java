@@ -1,5 +1,10 @@
 package com.noctua.backend.config;
 
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
 import com.noctua.backend.entity.Usuario.AdminEntity;
 import com.noctua.backend.entity.Usuario.ProfessorEntity;
 import com.noctua.backend.entity.Usuario.UsuarioEntity;
@@ -8,10 +13,6 @@ import com.noctua.backend.repository.usuario.ProfessorRepository;
 import com.noctua.backend.repository.usuario.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -29,7 +30,8 @@ public class DataSeeder implements ApplicationRunner {
     }
 
     private void seedAdmin() {
-        if (usuarioRepository.existsByEmail("admin@noctua.com")) return;
+        if (usuarioRepository.existsByEmail("admin@noctua.com"))
+            return;
 
         UsuarioEntity usuario = UsuarioEntity.builder()
                 .nome("Administrador")
@@ -46,7 +48,11 @@ public class DataSeeder implements ApplicationRunner {
     }
 
     private void seedProfessor() {
-        if (usuarioRepository.existsByEmail("prof@noctua.com")) return;
+        if (usuarioRepository.existsByEmail("prof@noctua.com"))
+            return;
+
+        if (professorRepository.existsByCpf("00000000000"))
+            return;
 
         UsuarioEntity usuario = UsuarioEntity.builder()
                 .nome("Professor Padrão")
