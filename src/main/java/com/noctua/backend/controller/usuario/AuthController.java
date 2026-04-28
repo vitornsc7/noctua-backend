@@ -1,21 +1,27 @@
 package com.noctua.backend.controller.usuario;
 
 import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import jakarta.validation.Valid;
+
 import com.noctua.backend.dto.Login.LoginRequestDTO;
 import com.noctua.backend.dto.Usuario.AuthenticatedUserResponseDTO;
 import com.noctua.backend.dto.Usuario.ForgotPasswordRequestDTO;
 import com.noctua.backend.dto.Usuario.ResetPasswordRequestDTO;
+import com.noctua.backend.dto.Usuario.UsuarioUpdateRequestDTO;
 import com.noctua.backend.dto.twoFactor.TwoFactorVerifyLoginRequestDTO;
 import com.noctua.backend.service.usuario.AuthService;
 import com.noctua.backend.service.usuario.PasswordResetService;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -81,5 +87,27 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<AuthenticatedUserResponseDTO> me(Authentication authentication) {
         return ResponseEntity.ok(authService.buscarUsuarioAutenticado(authentication.getName()));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<?> atualizarMe(
+            Authentication authentication,
+            @RequestBody UsuarioUpdateRequestDTO dto) {
+        try {
+            return ResponseEntity.ok(
+                    authService.atualizarUsuarioAutenticado(authentication.getName(), dto));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<?> excluirMe(Authentication authentication) {
+        try {
+            authService.excluirUsuarioAutenticado(authentication.getName());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
