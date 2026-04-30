@@ -1,5 +1,6 @@
 package com.noctua.backend.dto.Avaliacao;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.noctua.backend.enums.TipoAvaliacao;
@@ -22,4 +23,6 @@ public class AvaliacaoResponseDTO {
     private TipoAvaliacao tipo;
     private Integer periodo;
     private Long turmaId;
+    private BigDecimal media;
+    private Integer notasCount;
 }
