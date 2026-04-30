@@ -18,4 +18,5 @@ public class NotaResponseDTO {
     private Boolean naoRealizada;
     private Long avaliacaoId;
     private Long alunoId;
+    private String alunoNome;
 }
