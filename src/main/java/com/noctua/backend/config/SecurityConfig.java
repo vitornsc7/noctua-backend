@@ -26,6 +26,9 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(401, "Unauthorized")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/professores").permitAll()
                     .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
@@ -34,6 +37,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll()
                     .requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

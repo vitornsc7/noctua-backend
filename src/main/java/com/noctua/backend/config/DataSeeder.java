@@ -8,6 +8,7 @@ import com.noctua.backend.repository.usuario.ProfessorRepository;
 import com.noctua.backend.repository.usuario.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
