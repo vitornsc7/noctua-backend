@@ -31,13 +31,14 @@ public class SecurityConfig {
                                 response.sendError(401, "Unauthorized")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/professores").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/auth/2fa/verify-login").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/2fa/verify-login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/auth/me").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
