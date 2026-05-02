@@ -33,7 +33,7 @@ public class NotaEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal valor;
 
     @Column(nullable = false)

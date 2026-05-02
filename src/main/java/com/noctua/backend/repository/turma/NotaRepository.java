@@ -15,4 +15,6 @@ public interface NotaRepository extends JpaRepository<NotaEntity, Long> {
     List<NotaEntity> findByAvaliacaoId(Long avaliacaoId);
 
     List<NotaEntity> findByAvaliacao_TurmaId(Long turmaId);
+
+    boolean existsByAvaliacaoIdAndAlunoId(Long avaliacaoId, Long alunoId);
 }

@@ -1,6 +1,7 @@
 package com.noctua.backend.dto.Avaliacao;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.noctua.backend.enums.TipoAvaliacao;
 
@@ -21,4 +22,5 @@ public class AvaliacaoRequestDTO {
     private TipoAvaliacao tipo;
     private Integer periodo;
     private Long turmaId;
+    private List<Long> alunosIds;
 }
