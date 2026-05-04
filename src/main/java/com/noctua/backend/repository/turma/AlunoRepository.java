@@ -11,4 +11,6 @@ import com.noctua.backend.entity.Aluno.AlunoEntity;
 public interface AlunoRepository extends JpaRepository<AlunoEntity, Long> {
 
     List<AlunoEntity> findByTurmaId(Long turmaId);
+
+    List<AlunoEntity> findByTurmaIdAndAtivo(Long turmaId, Boolean ativo);
 }

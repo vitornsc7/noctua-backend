@@ -34,11 +34,11 @@ public class AlunoService {
         return toResponseDTO(salvo);
     }
 
-    public List<AlunoResponseDTO> listarPorTurma(Long turmaId) {
-        return alunoRepository.findByTurmaId(turmaId)
-                .stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public List<AlunoResponseDTO> listarPorTurma(Long turmaId, Boolean ativo) {
+        List<AlunoEntity> alunos = ativo != null
+                ? alunoRepository.findByTurmaIdAndAtivo(turmaId, ativo)
+                : alunoRepository.findByTurmaId(turmaId);
+        return alunos.stream().map(this::toResponseDTO).toList();
     }
 
     public AlunoResponseDTO buscarPorId(Long id) {
