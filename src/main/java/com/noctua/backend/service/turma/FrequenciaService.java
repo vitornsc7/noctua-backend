@@ -28,6 +28,7 @@ public class FrequenciaService {
         FrequenciaEntity frequencia = new FrequenciaEntity();
         frequencia.setDataFalta(request.getDataFalta());
         frequencia.setPeriodo(request.getPeriodo());
+        frequencia.setAtivo(true);
         frequencia.setAluno(aluno);
 
         FrequenciaEntity salva = frequenciaRepository.save(frequencia);
@@ -38,14 +39,14 @@ public class FrequenciaService {
     public List<FrequenciaResponseDTO> listarPorAluno(Long alunoId) {
         buscarAluno(alunoId);
 
-        return frequenciaRepository.findByAlunoId(alunoId)
+        return frequenciaRepository.findByAlunoIdAndAtivoTrue(alunoId)
                 .stream()
                 .map(this::converterParaResponse)
                 .toList();
     }
 
     public List<FrequenciaResponseDTO> listarPorTurma(Long turmaId) {
-        return frequenciaRepository.findByAluno_TurmaId(turmaId)
+        return frequenciaRepository.findByAluno_TurmaIdAndAtivoTrue(turmaId)
                 .stream()
                 .map(this::converterParaResponse)
                 .toList();
@@ -54,6 +55,10 @@ public class FrequenciaService {
     public FrequenciaResponseDTO atualizarFalta(Long id, FrequenciaRequestDTO request) {
         FrequenciaEntity frequencia = frequenciaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Registro de falta não encontrado."));
+
+        if (Boolean.FALSE.equals(frequencia.getAtivo())) {
+            throw new RuntimeException("Registro de falta não encontrado.");
+        }
 
         AlunoEntity aluno = buscarAluno(request.getAlunoId());
 
@@ -69,11 +74,15 @@ public class FrequenciaService {
     }
 
     public void excluirFalta(Long id) {
-        if (!frequenciaRepository.existsById(id)) {
+        FrequenciaEntity frequencia = frequenciaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Registro de falta não encontrado."));
+
+        if (Boolean.FALSE.equals(frequencia.getAtivo())) {
             throw new RuntimeException("Registro de falta não encontrado.");
         }
 
-        frequenciaRepository.deleteById(id);
+        frequencia.setAtivo(false);
+        frequenciaRepository.save(frequencia);
     }
 
     public double calcularPercentualFrequencia(Long alunoId, Integer periodo) {
@@ -83,7 +92,7 @@ public class FrequenciaService {
 
         Integer aulasPrevistas = aluno.getTurma().getQtdeAulasPrevistasPeriodo();
 
-        long totalFaltas = frequenciaRepository.countByAlunoIdAndPeriodo(alunoId, periodo);
+        long totalFaltas = frequenciaRepository.countByAlunoIdAndPeriodoAndAtivoTrue(alunoId, periodo);
 
         if (aulasPrevistas == null || aulasPrevistas <= 0) {
             return 0.0;

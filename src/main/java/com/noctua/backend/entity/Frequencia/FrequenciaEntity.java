@@ -17,7 +17,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-
 @Entity
 @Table(name = "frequencias")
 
@@ -37,6 +36,9 @@ public class FrequenciaEntity {
 
     @Column(nullable = false)
     private Integer periodo;
+
+    @Column(nullable = false)
+    private Boolean ativo = true;
 
     @ManyToOne
     @JoinColumn(name = "aluno_id", nullable = false)
