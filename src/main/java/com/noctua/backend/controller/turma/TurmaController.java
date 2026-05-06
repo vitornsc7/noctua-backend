@@ -50,8 +50,9 @@ public class TurmaController {
             @PageableDefault(size = 10, sort = "nome", direction = Sort.Direction.ASC) Pageable pageable,
             @RequestParam(required = false) String turno,
             @RequestParam(required = false) String anoLetivo,
-            @RequestParam(required = false) String instituicao) {
-        return ResponseEntity.ok(turmaService.listar(authentication.getName(), pageable, turno, anoLetivo, instituicao));
+            @RequestParam(required = false) String instituicao,
+            @RequestParam(required = false) String disciplina) {
+        return ResponseEntity.ok(turmaService.listar(authentication.getName(), pageable, turno, anoLetivo, instituicao, disciplina));
     }
 
     @GetMapping("/{id}")

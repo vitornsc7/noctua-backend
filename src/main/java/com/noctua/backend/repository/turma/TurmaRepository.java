@@ -23,4 +23,7 @@ public interface TurmaRepository extends JpaRepository<TurmaEntity, Long>, JpaSp
 
     @Query("SELECT DISTINCT t.instituicao FROM TurmaEntity t WHERE t.professor.id = :professorId AND t.ativo = true AND t.instituicao IS NOT NULL AND t.instituicao <> '' ORDER BY t.instituicao ASC")
     List<String> findDistinctInstituicoesByProfessorId(@Param("professorId") Long professorId);
+
+    @Query("SELECT DISTINCT t.disciplina FROM TurmaEntity t WHERE t.professor.id = :professorId AND t.ativo = true AND t.disciplina IS NOT NULL AND t.disciplina <> '' ORDER BY t.disciplina ASC")
+    List<String> findDistinctDisciplinasByProfessorId(@Param("professorId") Long professorId);
 }
