@@ -10,7 +10,9 @@ import com.noctua.backend.entity.Frequencia.FrequenciaEntity;
 @Repository
 public interface FrequenciaRepository extends JpaRepository<FrequenciaEntity, Long> {
 
-    List<FrequenciaEntity> findByAlunoId(Long alunoId);
+    List<FrequenciaEntity> findByAlunoIdAndAtivoTrue(Long alunoId);
 
-    List<FrequenciaEntity> findByAluno_TurmaId(Long turmaId);
+    List<FrequenciaEntity> findByAluno_TurmaIdAndAtivoTrue(Long turmaId);
+
+    long countByAlunoIdAndPeriodoAndAtivoTrue(Long alunoId, Integer periodo);
 }
