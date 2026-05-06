@@ -14,4 +14,5 @@ import lombok.Setter;
 public class TurmaFiltrosDTO {
     private List<Integer> anos;
     private List<String> instituicoes;
+    private List<String> disciplinas;
 }

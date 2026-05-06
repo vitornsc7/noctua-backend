@@ -49,7 +49,7 @@ public class TurmaService {
     }
 
     public Page<TurmaResponseDTO> listar(String emailProfessor, Pageable pageable, String turno, String anoLetivo,
-            String instituicao) {
+            String instituicao, String disciplina) {
         ProfessorEntity professor = buscarProfessorAutenticado(emailProfessor);
         Specification<TurmaEntity> spec = Specification.where(pertenceAoProfessor(professor.getId()))
             .and(estaAtiva());
@@ -70,6 +70,10 @@ public class TurmaService {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("instituicao"), instituicao));
         }
 
+        if (disciplina != null && !disciplina.isBlank()) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("disciplina"), disciplina));
+        }
+
         return turmaRepository.findAll(spec, pageable).map(this::toResponseDTO);
     }
 
@@ -77,7 +81,8 @@ public class TurmaService {
         ProfessorEntity professor = buscarProfessorAutenticado(emailProfessor);
         return new TurmaFiltrosDTO(
                 turmaRepository.findDistinctAnosByProfessorId(professor.getId()),
-                turmaRepository.findDistinctInstituicoesByProfessorId(professor.getId()));
+                turmaRepository.findDistinctInstituicoesByProfessorId(professor.getId()),
+                turmaRepository.findDistinctDisciplinasByProfessorId(professor.getId()));
     }
 
     public TurmaResponseDTO buscarPorId(String emailProfessor, Long id) {
