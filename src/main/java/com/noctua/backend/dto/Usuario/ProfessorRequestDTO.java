@@ -16,7 +16,6 @@ public class ProfessorRequestDTO {
     private String email;
     private String senha;
     private Boolean ativo;
-    private String cpf;
     private LocalDateTime dataExpiracao;
-    
+
 }
