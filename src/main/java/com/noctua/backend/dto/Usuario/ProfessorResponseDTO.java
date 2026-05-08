@@ -14,6 +14,5 @@ public class ProfessorResponseDTO {
     private String nome;
     private String email;
     private Boolean ativo;
-    private String cpf;
-    
+
 }

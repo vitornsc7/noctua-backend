@@ -31,9 +31,6 @@ public class ProfessorEntity {
     @JoinColumn(name = "id")
     private UsuarioEntity usuario;
 
-    @Column(nullable = false, unique = true)
-    private String cpf;
-
     @Column
     private LocalDateTime dataExpiracao;
 }

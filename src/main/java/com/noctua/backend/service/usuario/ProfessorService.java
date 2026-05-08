@@ -23,8 +23,7 @@ public class ProfessorService {
 
         if (professorRequestDTO.getNome() == null || professorRequestDTO.getNome().isBlank() ||
                 professorRequestDTO.getEmail() == null || professorRequestDTO.getEmail().isBlank() ||
-                professorRequestDTO.getSenha() == null || professorRequestDTO.getSenha().isBlank() ||
-                professorRequestDTO.getCpf() == null || professorRequestDTO.getCpf().isBlank()) {
+                professorRequestDTO.getSenha() == null || professorRequestDTO.getSenha().isBlank()) {
             throw new IllegalArgumentException("Todos os campos são obrigatórios.");
         }
 
@@ -32,13 +31,8 @@ public class ProfessorService {
             throw new IllegalArgumentException("E-mail já cadastrado.");
         }
 
-        if (professorRepository.findByCpf(professorRequestDTO.getCpf()).isPresent()) {
-            throw new IllegalArgumentException("CPF já cadastrado.");
-        }
-
         ProfessorEntity professor = ProfessorEntity.builder()
                 .usuario(criarUsuario(professorRequestDTO))
-                .cpf(professorRequestDTO.getCpf())
                 .build();
 
         professorRepository.save(professor);

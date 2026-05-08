@@ -51,9 +51,6 @@ public class DataSeeder implements ApplicationRunner {
         if (usuarioRepository.existsByEmail("prof@noctua.com"))
             return;
 
-        if (professorRepository.existsByCpf("00000000000"))
-            return;
-
         UsuarioEntity usuario = UsuarioEntity.builder()
                 .nome("Professor Padrão")
                 .email("prof@noctua.com")
@@ -63,7 +60,6 @@ public class DataSeeder implements ApplicationRunner {
 
         ProfessorEntity professor = ProfessorEntity.builder()
                 .usuario(usuario)
-                .cpf("00000000000")
                 .build();
 
         professorRepository.save(professor);
