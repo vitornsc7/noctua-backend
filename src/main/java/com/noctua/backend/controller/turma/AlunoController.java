@@ -1,6 +1,8 @@
 package com.noctua.backend.controller.turma;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +16,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.noctua.backend.dto.Aluno.AlunoRequestDTO;
 import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
+import com.noctua.backend.service.GeminiService;
 import com.noctua.backend.service.usuario.AlunoService;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class AlunoController {
 
     private final AlunoService alunoService;
+    private final GeminiService geminiService;
 
     @PostMapping
     public ResponseEntity<AlunoResponseDTO> criar(@PathVariable Long turmaId, @RequestBody AlunoRequestDTO request) {
@@ -58,4 +63,23 @@ public class AlunoController {
         alunoService.deletar(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/importar")
+    public ResponseEntity<?> importarComIA(
+            @PathVariable Long turmaId,
+            @RequestParam("arquivo") MultipartFile arquivo) {
+        if (arquivo.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("erro", "Arquivo vazio."));
+        }
+        try {
+            List<String> nomes = geminiService.extrairNomesAlunos(arquivo);
+            return ResponseEntity.ok(Map.of("nomes", nomes));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("erro", e.getMessage()));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("erro", "Erro ao processar o arquivo: " + e.getMessage()));
+        }
+    }
 }
+
