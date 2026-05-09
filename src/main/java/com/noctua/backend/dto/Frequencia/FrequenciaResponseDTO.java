@@ -11,10 +11,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class FrequenciaResponseDTO {
     private Long id;
     private LocalDateTime dataFalta;
     private Integer periodo;
+    private Integer periodosFaltados;
     private Long alunoId;
 }

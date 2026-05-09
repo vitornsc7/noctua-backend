@@ -24,10 +24,12 @@ public class FrequenciaService {
         AlunoEntity aluno = buscarAluno(request.getAlunoId());
 
         validarPeriodo(request.getPeriodo(), aluno);
+        validarPeriodosFaltados(request.getPeriodosFaltados());
 
         FrequenciaEntity frequencia = new FrequenciaEntity();
         frequencia.setDataFalta(request.getDataFalta());
         frequencia.setPeriodo(request.getPeriodo());
+        frequencia.setPeriodosFaltados(request.getPeriodosFaltados());
         frequencia.setAtivo(true);
         frequencia.setAluno(aluno);
 
@@ -63,9 +65,11 @@ public class FrequenciaService {
         AlunoEntity aluno = buscarAluno(request.getAlunoId());
 
         validarPeriodo(request.getPeriodo(), aluno);
+        validarPeriodosFaltados(request.getPeriodosFaltados());
 
         frequencia.setDataFalta(request.getDataFalta());
         frequencia.setPeriodo(request.getPeriodo());
+        frequencia.setPeriodosFaltados(request.getPeriodosFaltados());
         frequencia.setAluno(aluno);
 
         FrequenciaEntity atualizada = frequenciaRepository.save(frequencia);
@@ -92,11 +96,16 @@ public class FrequenciaService {
 
         Integer aulasPrevistas = aluno.getTurma().getQtdeAulasPrevistasPeriodo();
 
-        long totalFaltas = frequenciaRepository.countByAlunoIdAndPeriodoAndAtivoTrue(alunoId, periodo);
-
         if (aulasPrevistas == null || aulasPrevistas <= 0) {
             return 0.0;
         }
+
+        List<FrequenciaEntity> faltas = frequenciaRepository.findByAlunoIdAndAtivoTrue(alunoId);
+
+        int totalFaltas = faltas.stream()
+                .filter(falta -> falta.getPeriodo().equals(periodo))
+                .mapToInt(falta -> falta.getPeriodosFaltados() != null ? falta.getPeriodosFaltados() : 1)
+                .sum();
 
         double frequencia = ((aulasPrevistas - totalFaltas) * 100.0) / aulasPrevistas;
 
@@ -132,11 +141,22 @@ public class FrequenciaService {
         }
     }
 
+    private void validarPeriodosFaltados(Integer periodosFaltados) {
+        if (periodosFaltados == null) {
+            throw new RuntimeException("A quantidade de períodos faltados é obrigatória.");
+        }
+
+        if (periodosFaltados < 1 || periodosFaltados > 6) {
+            throw new RuntimeException("A quantidade de períodos faltados deve estar entre 1 e 6.");
+        }
+    }
+
     private FrequenciaResponseDTO converterParaResponse(FrequenciaEntity frequencia) {
         return new FrequenciaResponseDTO(
                 frequencia.getId(),
                 frequencia.getDataFalta(),
                 frequencia.getPeriodo(),
+                frequencia.getPeriodosFaltados(),
                 frequencia.getAluno().getId());
     }
 }

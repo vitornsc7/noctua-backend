@@ -16,6 +16,7 @@ import com.noctua.backend.dto.Frequencia.FrequenciaRequestDTO;
 import com.noctua.backend.dto.Frequencia.FrequenciaResponseDTO;
 import com.noctua.backend.service.turma.FrequenciaService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -26,7 +27,7 @@ public class FrequenciaController {
     private final FrequenciaService frequenciaService;
 
     @PostMapping
-    public ResponseEntity<FrequenciaResponseDTO> registrarFalta(@RequestBody FrequenciaRequestDTO request) {
+    public ResponseEntity<FrequenciaResponseDTO> registrarFalta(@Valid @RequestBody FrequenciaRequestDTO request) {
         return ResponseEntity.ok(frequenciaService.registrarFalta(request));
     }
 
@@ -43,7 +44,7 @@ public class FrequenciaController {
     @PutMapping("/{id}")
     public ResponseEntity<FrequenciaResponseDTO> atualizarFalta(
             @PathVariable Long id,
-            @RequestBody FrequenciaRequestDTO request) {
+            @Valid @RequestBody FrequenciaRequestDTO request) {
         return ResponseEntity.ok(frequenciaService.atualizarFalta(id, request));
     }
 

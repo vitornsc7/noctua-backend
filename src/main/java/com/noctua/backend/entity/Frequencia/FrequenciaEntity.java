@@ -37,6 +37,9 @@ public class FrequenciaEntity {
     @Column(nullable = false)
     private Integer periodo;
 
+    @Column(nullable = false, columnDefinition = "INT DEFAULT 1")
+    private Integer periodosFaltados = 1;
+
     @Column(nullable = false)
     private Boolean ativo = true;
 
