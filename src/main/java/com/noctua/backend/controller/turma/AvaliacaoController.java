@@ -9,12 +9,14 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Avaliacao.AvaliacaoRequestDTO;
 import com.noctua.backend.dto.Avaliacao.AvaliacaoResponseDTO;
+import com.noctua.backend.dto.Nota.NotaRequestDTO;
 import com.noctua.backend.dto.Nota.NotaResponseDTO;
 import com.noctua.backend.service.turma.AvaliacaoService;
 
@@ -55,5 +57,22 @@ public class AvaliacaoController {
             @PathVariable Long turmaId,
             @PathVariable Long avaliacaoId) {
         return ResponseEntity.ok(avaliacaoService.listarNotasPorAvaliacao(turmaId, avaliacaoId));
+    }
+
+    @PutMapping("/{avaliacaoId}")
+    public ResponseEntity<AvaliacaoResponseDTO> atualizar(
+            @PathVariable Long turmaId,
+            @PathVariable Long avaliacaoId,
+            @RequestBody AvaliacaoRequestDTO request) {
+        return ResponseEntity.ok(avaliacaoService.atualizar(turmaId, avaliacaoId, request));
+    }
+
+    @PutMapping("/{avaliacaoId}/notas/{notaId}")
+    public ResponseEntity<NotaResponseDTO> atualizarNota(
+            @PathVariable Long turmaId,
+            @PathVariable Long avaliacaoId,
+            @PathVariable Long notaId,
+            @RequestBody NotaRequestDTO request) {
+        return ResponseEntity.ok(avaliacaoService.atualizarNota(turmaId, avaliacaoId, notaId, request));
     }
 }

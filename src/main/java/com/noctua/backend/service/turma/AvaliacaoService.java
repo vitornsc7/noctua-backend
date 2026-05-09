@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.noctua.backend.dto.Avaliacao.AvaliacaoRequestDTO;
 import com.noctua.backend.dto.Avaliacao.AvaliacaoResponseDTO;
+import com.noctua.backend.dto.Nota.NotaRequestDTO;
 import com.noctua.backend.dto.Nota.NotaResponseDTO;
 import com.noctua.backend.entity.Aluno.AlunoEntity;
 import com.noctua.backend.entity.Avaliacao.AvaliacaoEntity;
@@ -149,5 +150,64 @@ public class AvaliacaoService {
         dto.setAlunoId(entity.getAluno().getId());
         dto.setAlunoNome(entity.getAluno().getNome());
         return dto;
+    }
+
+    public AvaliacaoResponseDTO atualizar(Long turmaId, Long avaliacaoId, AvaliacaoRequestDTO request) {
+        AvaliacaoEntity avaliacao = avaliacaoRepository.findById(avaliacaoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não encontrada"));
+
+        if (!avaliacao.getTurma().getId().equals(turmaId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não pertence à turma");
+        }
+
+        avaliacao.setTema(request.getTema());
+        avaliacao.setData(request.getData());
+        avaliacao.setPeso(request.getPeso());
+        avaliacao.setTipo(request.getTipo());
+        avaliacao.setPeriodo(request.getPeriodo());
+
+        AvaliacaoEntity salva = avaliacaoRepository.save(avaliacao);
+
+        if (request.getAlunosIds() != null) {
+            for (Long alunoId : request.getAlunosIds()) {
+                if (notaRepository.existsByAvaliacaoIdAndAlunoId(salva.getId(), alunoId)) {
+                    continue;
+                }
+                AlunoEntity aluno = alunoRepository.findById(alunoId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Aluno não encontrado: " + alunoId));
+
+                NotaEntity nota = new NotaEntity();
+                nota.setValor(null);
+                nota.setNaoRealizada(false);
+                nota.setAvaliacao(salva);
+                nota.setAluno(aluno);
+                notaRepository.save(nota);
+            }
+        }
+
+        return toResponseDTO(salva);
+    }
+
+    public NotaResponseDTO atualizarNota(Long turmaId, Long avaliacaoId, Long notaId, NotaRequestDTO request) {
+        AvaliacaoEntity avaliacao = avaliacaoRepository.findById(avaliacaoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não encontrada"));
+
+        if (!avaliacao.getTurma().getId().equals(turmaId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não pertence à turma");
+        }
+
+        NotaEntity nota = notaRepository.findById(notaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota não encontrada"));
+
+        if (!nota.getAvaliacao().getId().equals(avaliacaoId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota não pertence à avaliação");
+        }
+
+        boolean naoRealizada = Boolean.TRUE.equals(request.getNaoRealizada());
+        nota.setNaoRealizada(naoRealizada);
+        nota.setValor(naoRealizada ? null : request.getValor());
+
+        return toNotaResponseDTO(notaRepository.save(nota));
     }
 }
