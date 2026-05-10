@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -41,10 +45,11 @@ public class AlunoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AlunoResponseDTO>> listarPorTurma(
+    public ResponseEntity<Page<AlunoResponseDTO>> listarPorTurma(
             @PathVariable Long turmaId,
-            @RequestParam(required = false) Boolean ativo) {
-        return ResponseEntity.ok(alunoService.listarPorTurma(turmaId, ativo));
+            @RequestParam(required = false) Boolean ativo,
+            @PageableDefault(size = 10, sort = "nome", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(alunoService.listarPorTurmaPaginado(turmaId, ativo, pageable));
     }
 
     @GetMapping("/{id}")

@@ -2,6 +2,8 @@ package com.noctua.backend.service.usuario;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.noctua.backend.dto.Aluno.AlunoRequestDTO;
@@ -39,6 +41,13 @@ public class AlunoService {
                 ? alunoRepository.findByTurmaIdAndAtivo(turmaId, ativo)
                 : alunoRepository.findByTurmaId(turmaId);
         return alunos.stream().map(this::toResponseDTO).toList();
+    }
+
+    public Page<AlunoResponseDTO> listarPorTurmaPaginado(Long turmaId, Boolean ativo, Pageable pageable) {
+        Page<AlunoEntity> page = ativo != null
+                ? alunoRepository.findByTurmaIdAndAtivo(turmaId, ativo, pageable)
+                : alunoRepository.findByTurmaId(turmaId, pageable);
+        return page.map(this::toResponseDTO);
     }
 
     public AlunoResponseDTO buscarPorId(Long id) {
