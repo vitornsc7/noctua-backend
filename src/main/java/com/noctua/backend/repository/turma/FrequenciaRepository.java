@@ -13,6 +13,4 @@ public interface FrequenciaRepository extends JpaRepository<FrequenciaEntity, Lo
     List<FrequenciaEntity> findByAlunoIdAndAtivoTrue(Long alunoId);
 
     List<FrequenciaEntity> findByAluno_TurmaIdAndAtivoTrue(Long turmaId);
-
-    long countByAlunoIdAndPeriodoAndAtivoTrue(Long alunoId, Integer periodo);
 }
