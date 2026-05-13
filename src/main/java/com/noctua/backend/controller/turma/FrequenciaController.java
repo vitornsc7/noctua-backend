@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Frequencia.FrequenciaRequestDTO;
@@ -37,8 +38,10 @@ public class FrequenciaController {
     }
 
     @GetMapping("/turma/{turmaId}")
-    public ResponseEntity<List<FrequenciaResponseDTO>> listarPorTurma(@PathVariable Long turmaId) {
-        return ResponseEntity.ok(frequenciaService.listarPorTurma(turmaId));
+    public ResponseEntity<List<FrequenciaResponseDTO>> listarPorTurma(
+            @PathVariable Long turmaId,
+            @RequestParam(required = false) Integer periodo) {
+        return ResponseEntity.ok(frequenciaService.listarPorTurma(turmaId, periodo));
     }
 
     @PutMapping("/{id}")
