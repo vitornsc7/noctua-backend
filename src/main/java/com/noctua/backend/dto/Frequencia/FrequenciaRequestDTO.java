@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +17,6 @@ import lombok.Setter;
 
 public class FrequenciaRequestDTO {
     @NotNull(message = "A data da falta é obrigatória.")
-    @PastOrPresent(message = "A data da falta não pode ser futura.")
     private LocalDateTime dataFalta;
 
     @NotNull(message = "O período é obrigatório.")
