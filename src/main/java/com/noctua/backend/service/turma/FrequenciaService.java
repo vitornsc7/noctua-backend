@@ -47,9 +47,11 @@ public class FrequenciaService {
                 .toList();
     }
 
-    public List<FrequenciaResponseDTO> listarPorTurma(Long turmaId) {
-        return frequenciaRepository.findByAluno_TurmaIdAndAtivoTrue(turmaId)
-                .stream()
+    public List<FrequenciaResponseDTO> listarPorTurma(Long turmaId, Integer periodo) {
+        List<FrequenciaEntity> frequencias = periodo != null
+                ? frequenciaRepository.findByAluno_TurmaIdAndPeriodoAndAtivoTrue(turmaId, periodo)
+                : frequenciaRepository.findByAluno_TurmaIdAndAtivoTrue(turmaId);
+        return frequencias.stream()
                 .map(this::converterParaResponse)
                 .toList();
     }
