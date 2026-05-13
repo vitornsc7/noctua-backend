@@ -1,5 +1,8 @@
 package com.noctua.backend.service.turma;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -25,6 +28,7 @@ public class FrequenciaService {
 
         validarPeriodo(request.getPeriodo(), aluno);
         validarPeriodosFaltados(request.getPeriodosFaltados());
+        validarDataFalta(request.getDataFalta());
 
         FrequenciaEntity frequencia = new FrequenciaEntity();
         frequencia.setDataFalta(request.getDataFalta());
@@ -65,6 +69,7 @@ public class FrequenciaService {
         }
 
         AlunoEntity aluno = buscarAluno(request.getAlunoId());
+        validarDataFalta(request.getDataFalta());
 
         validarPeriodo(request.getPeriodo(), aluno);
         validarPeriodosFaltados(request.getPeriodosFaltados());
@@ -160,5 +165,18 @@ public class FrequenciaService {
                 frequencia.getPeriodo(),
                 frequencia.getPeriodosFaltados(),
                 frequencia.getAluno().getId());
+    }
+
+    private void validarDataFalta(LocalDateTime dataFalta) {
+        if (dataFalta == null) {
+            throw new RuntimeException("A data da falta é obrigatória.");
+        }
+
+        LocalDate dataInformada = dataFalta.toLocalDate();
+        LocalDate hojeBrasil = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
+
+        if (dataInformada.isAfter(hojeBrasil)) {
+            throw new RuntimeException("A data da falta não pode ser futura.");
+        }
     }
 }
