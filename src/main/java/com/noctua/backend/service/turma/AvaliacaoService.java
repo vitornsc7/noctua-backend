@@ -130,12 +130,7 @@ public class AvaliacaoService {
         }
 
         return notaRepository.findByAvaliacaoId(avaliacaoId).stream()
-                .sorted((a, b) -> {
-                    if (a.getValor() == null && b.getValor() == null) return a.getAluno().getNome().compareTo(b.getAluno().getNome());
-                    if (a.getValor() == null) return 1;
-                    if (b.getValor() == null) return -1;
-                    return b.getValor().compareTo(a.getValor());
-                })
+                .sorted((a, b) -> a.getAluno().getNome().compareTo(b.getAluno().getNome()))
                 .map(this::toNotaResponseDTO)
                 .toList();
     }
