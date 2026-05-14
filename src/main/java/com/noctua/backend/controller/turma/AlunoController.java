@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.security.core.Authentication;
+
 import com.noctua.backend.dto.Aluno.AlunoRequestDTO;
 import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
 import com.noctua.backend.service.GeminiService;
@@ -71,13 +73,14 @@ public class AlunoController {
 
     @PostMapping("/importar")
     public ResponseEntity<?> importarComIA(
+            Authentication authentication,
             @PathVariable Long turmaId,
             @RequestParam("arquivo") MultipartFile arquivo) {
         if (arquivo.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("erro", "Arquivo vazio."));
         }
         try {
-            List<String> nomes = geminiService.extrairNomesAlunos(arquivo);
+            List<String> nomes = geminiService.extrairNomesAlunos(arquivo, authentication.getName());
             return ResponseEntity.ok(Map.of("nomes", nomes));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("erro", e.getMessage()));
