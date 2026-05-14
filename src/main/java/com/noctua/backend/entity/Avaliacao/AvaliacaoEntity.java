@@ -59,6 +59,13 @@ public class AvaliacaoEntity {
     @JoinColumn(name = "turma_id", nullable = false)
     private TurmaEntity turma;
 
+    @Column(nullable = false)
+    private Integer numeroChamada;
+
+    @ManyToOne
+    @JoinColumn(name = "avaliacao_pai_id")
+    private AvaliacaoEntity avaliacaoPai;
+
     @OneToMany(mappedBy = "avaliacao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<NotaEntity> notas;
 }

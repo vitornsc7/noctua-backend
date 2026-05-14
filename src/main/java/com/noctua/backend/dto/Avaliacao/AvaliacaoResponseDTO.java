@@ -25,4 +25,6 @@ public class AvaliacaoResponseDTO {
     private Long turmaId;
     private BigDecimal media;
     private Integer notasCount;
+    private Integer numeroChamada;
+    private Long avaliacaoPaiId;
 }
