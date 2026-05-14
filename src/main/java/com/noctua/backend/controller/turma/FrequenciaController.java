@@ -1,5 +1,6 @@
 package com.noctua.backend.controller.turma;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -40,8 +41,9 @@ public class FrequenciaController {
     @GetMapping("/turma/{turmaId}")
     public ResponseEntity<List<FrequenciaResponseDTO>> listarPorTurma(
             @PathVariable Long turmaId,
-            @RequestParam(required = false) Integer periodo) {
-        return ResponseEntity.ok(frequenciaService.listarPorTurma(turmaId, periodo));
+            @RequestParam(required = false) Integer periodo,
+            @RequestParam(required = false) LocalDate dataFalta) {
+        return ResponseEntity.ok(frequenciaService.listarPorTurma(turmaId, periodo, dataFalta));
     }
 
     @PutMapping("/{id}")
