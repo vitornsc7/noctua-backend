@@ -2,10 +2,15 @@ package com.noctua.backend.service.turma;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.criteria.Predicate;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.noctua.backend.dto.Frequencia.FrequenciaRequestDTO;
@@ -52,22 +57,26 @@ public class FrequenciaService {
                 .toList();
     }
 
-    public Page<FrequenciaResponseDTO> listarPorTurma(Long turmaId, Integer periodo, LocalDate dataFalta, Pageable pageable) {
-        if (periodo != null && dataFalta != null) {
-            return frequenciaRepository.findByAluno_TurmaIdAndPeriodoAndDataFaltaGreaterThanEqualAndDataFaltaLessThanAndAtivoTrue(
-                    turmaId, periodo, dataFalta.atStartOfDay(), dataFalta.plusDays(1).atStartOfDay(), pageable)
-                    .map(this::converterParaResponse);
-        } else if (periodo != null) {
-            return frequenciaRepository.findByAluno_TurmaIdAndPeriodoAndAtivoTrue(turmaId, periodo, pageable)
-                    .map(this::converterParaResponse);
-        } else if (dataFalta != null) {
-            return frequenciaRepository.findByAluno_TurmaIdAndDataFaltaGreaterThanEqualAndDataFaltaLessThanAndAtivoTrue(
-                    turmaId, dataFalta.atStartOfDay(), dataFalta.plusDays(1).atStartOfDay(), pageable)
-                    .map(this::converterParaResponse);
-        } else {
-            return frequenciaRepository.findByAluno_TurmaIdAndAtivoTrue(turmaId, pageable)
-                    .map(this::converterParaResponse);
-        }
+    public Page<FrequenciaResponseDTO> listarPorTurma(Long turmaId, Integer periodo, LocalDate dataFalta, Long alunoId, Pageable pageable) {
+        Specification<FrequenciaEntity> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("aluno").get("turma").get("id"), turmaId));
+            predicates.add(cb.isTrue(root.get("ativo")));
+            if (periodo != null) {
+                predicates.add(cb.equal(root.get("periodo"), periodo));
+            }
+            if (dataFalta != null) {
+                LocalDateTime start = dataFalta.atStartOfDay();
+                LocalDateTime end = dataFalta.plusDays(1).atStartOfDay();
+                predicates.add(cb.greaterThanOrEqualTo(root.get("dataFalta"), start));
+                predicates.add(cb.lessThan(root.get("dataFalta"), end));
+            }
+            if (alunoId != null) {
+                predicates.add(cb.equal(root.get("aluno").get("id"), alunoId));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return frequenciaRepository.findAll(spec, pageable).map(this::converterParaResponse);
     }
 
     public FrequenciaResponseDTO atualizarFalta(Long id, FrequenciaRequestDTO request) {
