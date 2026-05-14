@@ -62,6 +62,9 @@ public class AvaliacaoEntity {
     @Column(nullable = false)
     private Integer numeroChamada;
 
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean concluida = false;
+
     @ManyToOne
     @JoinColumn(name = "avaliacao_pai_id")
     private AvaliacaoEntity avaliacaoPai;
