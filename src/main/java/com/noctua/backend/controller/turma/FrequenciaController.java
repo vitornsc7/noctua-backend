@@ -1,8 +1,10 @@
 package com.noctua.backend.controller.turma;
 
 import java.time.LocalDate;
-import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,11 +41,12 @@ public class FrequenciaController {
     }
 
     @GetMapping("/turma/{turmaId}")
-    public ResponseEntity<List<FrequenciaResponseDTO>> listarPorTurma(
+    public ResponseEntity<Page<FrequenciaResponseDTO>> listarPorTurma(
             @PathVariable Long turmaId,
             @RequestParam(required = false) Integer periodo,
-            @RequestParam(required = false) LocalDate dataFalta) {
-        return ResponseEntity.ok(frequenciaService.listarPorTurma(turmaId, periodo, dataFalta));
+            @RequestParam(required = false) LocalDate dataFalta,
+            @PageableDefault(size = 10, sort = "dataFalta", direction = Sort.Direction.DESC) org.springframework.data.domain.Pageable pageable) {
+        return ResponseEntity.ok(frequenciaService.listarPorTurma(turmaId, periodo, dataFalta, pageable));
     }
 
     @PutMapping("/{id}")
