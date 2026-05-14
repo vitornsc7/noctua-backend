@@ -27,4 +27,5 @@ public class AvaliacaoResponseDTO {
     private Integer notasCount;
     private Integer numeroChamada;
     private Long avaliacaoPaiId;
+    private Boolean concluida;
 }

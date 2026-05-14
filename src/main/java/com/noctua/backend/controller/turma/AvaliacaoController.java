@@ -2,6 +2,9 @@ package com.noctua.backend.controller.turma;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -12,15 +15,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Avaliacao.AvaliacaoRequestDTO;
 import com.noctua.backend.dto.Avaliacao.AvaliacaoResponseDTO;
 import com.noctua.backend.dto.Nota.NotaRequestDTO;
 import com.noctua.backend.dto.Nota.NotaResponseDTO;
+import com.noctua.backend.enums.TipoAvaliacao;
 import com.noctua.backend.service.turma.AvaliacaoService;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/turmas/{turmaId}/avaliacoes")
@@ -40,9 +47,13 @@ public class AvaliacaoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AvaliacaoResponseDTO>> listar(
-            @PathVariable Long turmaId) {
-        return ResponseEntity.ok(avaliacaoService.listarPorTurma(turmaId));
+    public ResponseEntity<Page<AvaliacaoResponseDTO>> listar(
+            @PathVariable Long turmaId,
+            @RequestParam(required = false) Integer periodo,
+            @RequestParam(required = false) TipoAvaliacao tipo,
+            @RequestParam(required = false) Boolean concluida,
+            @PageableDefault(size = 10, sort = "data", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(avaliacaoService.listarPorTurma(turmaId, periodo, tipo, concluida, pageable));
     }
 
     @GetMapping("/{avaliacaoId}")
