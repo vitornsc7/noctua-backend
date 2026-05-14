@@ -151,6 +151,9 @@ public class AvaliacaoService {
         dto.setTurmaId(entity.getTurma().getId());
         dto.setNumeroChamada(entity.getNumeroChamada());
         dto.setAvaliacaoPaiId(entity.getAvaliacaoPai() != null ? entity.getAvaliacaoPai().getId() : null);
+        dto.setTemChamadaFilha(avaliacaoRepository.existsByAvaliacaoPaiId(entity.getId()));
+        avaliacaoRepository.findByAvaliacaoPaiId(entity.getId())
+                .ifPresent(filha -> dto.setAvaliacaoFilhaId(filha.getId()));
 
         List<NotaEntity> notas = notaRepository.findByAvaliacaoId(entity.getId());
         dto.setNotasCount(notas.size());
@@ -188,6 +191,11 @@ public class AvaliacaoService {
 
         if (!pai.getTurma().getId().equals(turmaId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não pertence à turma");
+        }
+
+        if (avaliacaoRepository.existsByAvaliacaoPaiId(avaliacaoId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Esta avaliação já possui uma chamada subsequente.");
         }
 
         List<NotaEntity> naoRealizadas = notaRepository.findByAvaliacaoId(avaliacaoId).stream()
@@ -273,6 +281,22 @@ public class AvaliacaoService {
 
         if (!nota.getAvaliacao().getId().equals(avaliacaoId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota não pertence à avaliação");
+        }
+
+        boolean temFilha = avaliacaoRepository.existsByAvaliacaoPaiId(avaliacaoId);
+        if (temFilha) {
+            if (Boolean.TRUE.equals(nota.getNaoRealizada()) && !Boolean.TRUE.equals(request.getNaoRealizada())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Não é possível remover o status 'não compareceu' pois já existe uma chamada subsequente.");
+            }
+            if (Boolean.TRUE.equals(request.getNaoRealizada()) && nota.getValor() != null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Não é possível marcar como 'não compareceu' um aluno que já possui nota lançada.");
+            }
+            if (Boolean.TRUE.equals(nota.getNaoRealizada()) && request.getValor() != null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Não é possível lançar nota para um aluno marcado como 'não compareceu'.");
+            }
         }
 
         boolean naoRealizada = Boolean.TRUE.equals(request.getNaoRealizada());
