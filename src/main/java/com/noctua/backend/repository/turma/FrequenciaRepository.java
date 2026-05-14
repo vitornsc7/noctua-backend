@@ -1,8 +1,10 @@
 package com.noctua.backend.repository.turma;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,11 +15,11 @@ public interface FrequenciaRepository extends JpaRepository<FrequenciaEntity, Lo
 
     List<FrequenciaEntity> findByAlunoIdAndAtivoTrue(Long alunoId);
 
-    List<FrequenciaEntity> findByAluno_TurmaIdAndAtivoTrue(Long turmaId);
+    Page<FrequenciaEntity> findByAluno_TurmaIdAndAtivoTrue(Long turmaId, Pageable pageable);
 
-    List<FrequenciaEntity> findByAluno_TurmaIdAndPeriodoAndAtivoTrue(Long turmaId, Integer periodo);
+    Page<FrequenciaEntity> findByAluno_TurmaIdAndPeriodoAndAtivoTrue(Long turmaId, Integer periodo, Pageable pageable);
 
-    List<FrequenciaEntity> findByAluno_TurmaIdAndDataFaltaAndAtivoTrue(Long turmaId, LocalDate dataFalta);
+    Page<FrequenciaEntity> findByAluno_TurmaIdAndDataFaltaGreaterThanEqualAndDataFaltaLessThanAndAtivoTrue(Long turmaId, LocalDateTime start, LocalDateTime end, Pageable pageable);
 
-    List<FrequenciaEntity> findByAluno_TurmaIdAndPeriodoAndDataFaltaAndAtivoTrue(Long turmaId, Integer periodo, LocalDate dataFalta);
+    Page<FrequenciaEntity> findByAluno_TurmaIdAndPeriodoAndDataFaltaGreaterThanEqualAndDataFaltaLessThanAndAtivoTrue(Long turmaId, Integer periodo, LocalDateTime start, LocalDateTime end, Pageable pageable);
 }

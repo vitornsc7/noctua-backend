@@ -2,9 +2,10 @@ package com.noctua.backend.service.turma;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.noctua.backend.dto.Frequencia.FrequenciaRequestDTO;
@@ -51,20 +52,22 @@ public class FrequenciaService {
                 .toList();
     }
 
-    public List<FrequenciaResponseDTO> listarPorTurma(Long turmaId, Integer periodo, LocalDate dataFalta) {
-        List<FrequenciaEntity> frequencias;
+    public Page<FrequenciaResponseDTO> listarPorTurma(Long turmaId, Integer periodo, LocalDate dataFalta, Pageable pageable) {
         if (periodo != null && dataFalta != null) {
-            frequencias = frequenciaRepository.findByAluno_TurmaIdAndPeriodoAndDataFaltaAndAtivoTrue(turmaId, periodo, dataFalta);
+            return frequenciaRepository.findByAluno_TurmaIdAndPeriodoAndDataFaltaGreaterThanEqualAndDataFaltaLessThanAndAtivoTrue(
+                    turmaId, periodo, dataFalta.atStartOfDay(), dataFalta.plusDays(1).atStartOfDay(), pageable)
+                    .map(this::converterParaResponse);
         } else if (periodo != null) {
-            frequencias = frequenciaRepository.findByAluno_TurmaIdAndPeriodoAndAtivoTrue(turmaId, periodo);
+            return frequenciaRepository.findByAluno_TurmaIdAndPeriodoAndAtivoTrue(turmaId, periodo, pageable)
+                    .map(this::converterParaResponse);
         } else if (dataFalta != null) {
-            frequencias = frequenciaRepository.findByAluno_TurmaIdAndDataFaltaAndAtivoTrue(turmaId, dataFalta);
+            return frequenciaRepository.findByAluno_TurmaIdAndDataFaltaGreaterThanEqualAndDataFaltaLessThanAndAtivoTrue(
+                    turmaId, dataFalta.atStartOfDay(), dataFalta.plusDays(1).atStartOfDay(), pageable)
+                    .map(this::converterParaResponse);
         } else {
-            frequencias = frequenciaRepository.findByAluno_TurmaIdAndAtivoTrue(turmaId);
+            return frequenciaRepository.findByAluno_TurmaIdAndAtivoTrue(turmaId, pageable)
+                    .map(this::converterParaResponse);
         }
-        return frequencias.stream()
-                .map(this::converterParaResponse)
-                .toList();
     }
 
     public FrequenciaResponseDTO atualizarFalta(Long id, FrequenciaRequestDTO request) {
