@@ -47,6 +47,8 @@ public class AvaliacaoService {
         entity.setTipo(request.getTipo());
         entity.setPeriodo(request.getPeriodo());
         entity.setTurma(turma);
+        entity.setNumeroChamada(1);
+        entity.setAvaliacaoPai(null);
 
         AvaliacaoEntity salva = avaliacaoRepository.save(entity);
 
@@ -124,6 +126,8 @@ public class AvaliacaoService {
         dto.setTipo(entity.getTipo());
         dto.setPeriodo(entity.getPeriodo());
         dto.setTurmaId(entity.getTurma().getId());
+        dto.setNumeroChamada(entity.getNumeroChamada());
+        dto.setAvaliacaoPaiId(entity.getAvaliacaoPai() != null ? entity.getAvaliacaoPai().getId() : null);
 
         List<NotaEntity> notas = notaRepository.findByAvaliacaoId(entity.getId());
         dto.setNotasCount(notas.size());
@@ -150,6 +154,49 @@ public class AvaliacaoService {
         dto.setAlunoId(entity.getAluno().getId());
         dto.setAlunoNome(entity.getAluno().getNome());
         return dto;
+    }
+
+    public AvaliacaoResponseDTO criarChamada(String emailProfessor, Long turmaId, Long avaliacaoId) {
+        buscarProfessorAutenticado(emailProfessor);
+
+        AvaliacaoEntity pai = avaliacaoRepository.findById(avaliacaoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não encontrada"));
+
+        if (!pai.getTurma().getId().equals(turmaId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não pertence à turma");
+        }
+
+        List<NotaEntity> naoRealizadas = notaRepository.findByAvaliacaoId(avaliacaoId).stream()
+                .filter(n -> Boolean.TRUE.equals(n.getNaoRealizada()))
+                .toList();
+
+        if (naoRealizadas.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Não há alunos marcados como não compareceu para criar uma nova chamada.");
+        }
+
+        AvaliacaoEntity nova = new AvaliacaoEntity();
+        nova.setTema(pai.getTema());
+        nova.setData(pai.getData());
+        nova.setPeso(pai.getPeso());
+        nova.setTipo(pai.getTipo());
+        nova.setPeriodo(pai.getPeriodo());
+        nova.setTurma(pai.getTurma());
+        nova.setNumeroChamada(pai.getNumeroChamada() + 1);
+        nova.setAvaliacaoPai(pai);
+
+        AvaliacaoEntity salva = avaliacaoRepository.save(nova);
+
+        for (NotaEntity notaPai : naoRealizadas) {
+            NotaEntity nota = new NotaEntity();
+            nota.setValor(null);
+            nota.setNaoRealizada(false);
+            nota.setAvaliacao(salva);
+            nota.setAluno(notaPai.getAluno());
+            notaRepository.save(nota);
+        }
+
+        return toResponseDTO(salva);
     }
 
     public AvaliacaoResponseDTO atualizar(Long turmaId, Long avaliacaoId, AvaliacaoRequestDTO request) {

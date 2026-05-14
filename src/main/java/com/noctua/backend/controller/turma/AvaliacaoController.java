@@ -75,4 +75,13 @@ public class AvaliacaoController {
             @RequestBody NotaRequestDTO request) {
         return ResponseEntity.ok(avaliacaoService.atualizarNota(turmaId, avaliacaoId, notaId, request));
     }
+
+    @PostMapping("/{avaliacaoId}/chamada")
+    public ResponseEntity<AvaliacaoResponseDTO> criarChamada(
+            Authentication authentication,
+            @PathVariable Long turmaId,
+            @PathVariable Long avaliacaoId) {
+        AvaliacaoResponseDTO response = avaliacaoService.criarChamada(authentication.getName(), turmaId, avaliacaoId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 }
