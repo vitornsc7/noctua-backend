@@ -1,7 +1,5 @@
 package com.noctua.backend.dto.Usuario;
 
-import java.time.LocalDateTime;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -12,5 +10,5 @@ public class AdminMonitoringProfessorDTO {
     private String nome;
     private String email;
     private Boolean ativo;
-    private LocalDateTime dataExpiracao;
+    private Long totalTokens;
 }

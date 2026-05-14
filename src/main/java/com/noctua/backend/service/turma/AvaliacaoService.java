@@ -2,8 +2,14 @@ package com.noctua.backend.service.turma;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.criteria.Predicate;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,6 +23,7 @@ import com.noctua.backend.entity.Avaliacao.AvaliacaoEntity;
 import com.noctua.backend.entity.Nota.NotaEntity;
 import com.noctua.backend.entity.Turma.TurmaEntity;
 import com.noctua.backend.entity.Usuario.ProfessorEntity;
+import com.noctua.backend.enums.TipoAvaliacao;
 import com.noctua.backend.repository.turma.AlunoRepository;
 import com.noctua.backend.repository.turma.AvaliacaoRepository;
 import com.noctua.backend.repository.turma.NotaRepository;
@@ -82,6 +89,27 @@ public class AvaliacaoService {
                 .toList();
     }
 
+    public Page<AvaliacaoResponseDTO> listarPorTurma(Long turmaId, Integer periodo, TipoAvaliacao tipo, Boolean concluida, Pageable pageable) {
+        turmaRepository.findById(turmaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada"));
+
+        Specification<AvaliacaoEntity> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("turma").get("id"), turmaId));
+            if (periodo != null) {
+                predicates.add(cb.equal(root.get("periodo"), periodo));
+            }
+            if (tipo != null) {
+                predicates.add(cb.equal(root.get("tipo"), tipo));
+            }
+            if (concluida != null) {
+                predicates.add(cb.equal(root.get("concluida"), concluida));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        return avaliacaoRepository.findAll(spec, pageable).map(this::toResponseDTO);
+    }
+
     public AvaliacaoResponseDTO buscarPorId(Long turmaId, Long avaliacaoId) {
         AvaliacaoEntity entity = avaliacaoRepository.findById(avaliacaoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não encontrada"));
@@ -102,12 +130,7 @@ public class AvaliacaoService {
         }
 
         return notaRepository.findByAvaliacaoId(avaliacaoId).stream()
-                .sorted((a, b) -> {
-                    if (a.getValor() == null && b.getValor() == null) return a.getAluno().getNome().compareTo(b.getAluno().getNome());
-                    if (a.getValor() == null) return 1;
-                    if (b.getValor() == null) return -1;
-                    return b.getValor().compareTo(a.getValor());
-                })
+                .sorted((a, b) -> a.getAluno().getNome().compareTo(b.getAluno().getNome()))
                 .map(this::toNotaResponseDTO)
                 .toList();
     }
@@ -131,6 +154,7 @@ public class AvaliacaoService {
 
         List<NotaEntity> notas = notaRepository.findByAvaliacaoId(entity.getId());
         dto.setNotasCount(notas.size());
+        dto.setConcluida(Boolean.TRUE.equals(entity.getConcluida()));
 
         List<BigDecimal> valores = notas.stream()
                 .filter(n -> n.getValor() != null)
@@ -254,7 +278,14 @@ public class AvaliacaoService {
         boolean naoRealizada = Boolean.TRUE.equals(request.getNaoRealizada());
         nota.setNaoRealizada(naoRealizada);
         nota.setValor(naoRealizada ? null : request.getValor());
+        notaRepository.save(nota);
 
-        return toNotaResponseDTO(notaRepository.save(nota));
+        List<NotaEntity> todasNotas = notaRepository.findByAvaliacaoId(avaliacaoId);
+        boolean concluida = !todasNotas.isEmpty() && todasNotas.stream()
+                .allMatch(n -> Boolean.TRUE.equals(n.getNaoRealizada()) || n.getValor() != null);
+        avaliacao.setConcluida(concluida);
+        avaliacaoRepository.save(avaliacao);
+
+        return toNotaResponseDTO(nota);
     }
 }

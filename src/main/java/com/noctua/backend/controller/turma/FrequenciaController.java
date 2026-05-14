@@ -1,6 +1,7 @@
 package com.noctua.backend.controller.turma;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
@@ -45,8 +46,9 @@ public class FrequenciaController {
             @PathVariable Long turmaId,
             @RequestParam(required = false) Integer periodo,
             @RequestParam(required = false) LocalDate dataFalta,
+            @RequestParam(required = false) Long alunoId,
             @PageableDefault(size = 10, sort = "dataFalta", direction = Sort.Direction.DESC) org.springframework.data.domain.Pageable pageable) {
-        return ResponseEntity.ok(frequenciaService.listarPorTurma(turmaId, periodo, dataFalta, pageable));
+        return ResponseEntity.ok(frequenciaService.listarPorTurma(turmaId, periodo, dataFalta, alunoId, pageable));
     }
 
     @PutMapping("/{id}")

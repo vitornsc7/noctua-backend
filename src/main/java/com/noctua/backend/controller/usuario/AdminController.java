@@ -1,5 +1,7 @@
 package com.noctua.backend.controller.usuario;
 
+import java.util.List;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -7,8 +9,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.noctua.backend.dto.AiRequestLog.AiRequestLogDTO;
 import com.noctua.backend.dto.Usuario.AdminRequestDTO;
 import com.noctua.backend.dto.Usuario.AdminMonitoringResponseDTO;
 import com.noctua.backend.service.usuario.AdminService;
@@ -26,6 +30,13 @@ public class AdminController {
     @GetMapping("/monitoramento")
     public ResponseEntity<AdminMonitoringResponseDTO> monitoramento(Authentication authentication) {
         return ResponseEntity.ok(adminService.buscarMonitoramento(authentication.getName()));
+    }
+
+    @GetMapping("/logs")
+    public ResponseEntity<List<AiRequestLogDTO>> logs(
+            Authentication authentication,
+            @RequestParam(required = false) Long professorId) {
+        return ResponseEntity.ok(adminService.buscarLogs(authentication.getName(), professorId));
     }
 
     @PostMapping

@@ -2,14 +2,21 @@ package com.noctua.backend.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.noctua.backend.entity.AiRequestLog.AiRequestLogEntity;
+import com.noctua.backend.entity.Usuario.ProfessorEntity;
+import com.noctua.backend.repository.AiRequestLogRepository;
+import com.noctua.backend.repository.usuario.ProfessorRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -59,13 +66,17 @@ public class GeminiService {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final AiRequestLogRepository aiRequestLogRepository;
+    private final ProfessorRepository professorRepository;
 
-    public GeminiService(ObjectMapper objectMapper) {
+    public GeminiService(ObjectMapper objectMapper, AiRequestLogRepository aiRequestLogRepository, ProfessorRepository professorRepository) {
         this.restClient = RestClient.create();
         this.objectMapper = objectMapper;
+        this.aiRequestLogRepository = aiRequestLogRepository;
+        this.professorRepository = professorRepository;
     }
 
-    public List<String> extrairNomesAlunos(MultipartFile arquivo) throws IOException {
+    public List<String> extrairNomesAlunos(MultipartFile arquivo, String emailProfessor) throws IOException {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("Chave de API do Gemini não configurada (GOOGLE_API_KEY).");
         }
@@ -95,7 +106,26 @@ public class GeminiService {
                 .retrieve()
                 .body(String.class);
 
-        return parseStudentNames(responseBody);
+        List<String> nomes = parseStudentNames(responseBody);
+        salvarLog(responseBody, emailProfessor);
+        return nomes;
+    }
+
+    private void salvarLog(String responseJson, String emailProfessor) {
+        try {
+            JsonNode root = objectMapper.readTree(responseJson);
+            int totalTokens = root.path("usageMetadata").path("totalTokenCount").asInt(0);
+            if (totalTokens == 0) return;
+            ProfessorEntity professor = professorRepository.findByUsuarioEmail(emailProfessor)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Professor não encontrado"));
+            AiRequestLogEntity log = new AiRequestLogEntity();
+            log.setProfessor(professor);
+            log.setDataRequest(LocalDateTime.now());
+            log.setTokensUsados(totalTokens);
+            aiRequestLogRepository.save(log);
+        } catch (Exception e) {
+            log.warn("Não foi possível salvar log de tokens da IA: {}", e.getMessage());
+        }
     }
 
     private List<String> parseStudentNames(String responseJson) throws IOException {
