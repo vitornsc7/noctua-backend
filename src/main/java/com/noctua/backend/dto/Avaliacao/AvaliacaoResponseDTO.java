@@ -28,4 +28,6 @@ public class AvaliacaoResponseDTO {
     private Integer numeroChamada;
     private Long avaliacaoPaiId;
     private Boolean concluida;
+    private Boolean temChamadaFilha;
+    private Long avaliacaoFilhaId;
 }
