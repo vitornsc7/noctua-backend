@@ -1,5 +1,7 @@
 package com.noctua.backend.controller.usuario;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ProfessorController {
 
+    private static final Logger log = LoggerFactory.getLogger(ProfessorController.class);
+
     private final ProfessorService professorService;
 
     @PostMapping
@@ -27,8 +31,9 @@ public class ProfessorController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
+            log.error("Erro ao cadastrar professor", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erro interno ao cadastrar professor.");
+                    .body("Erro interno ao cadastrar professor: " + e.getMessage());
         }
     }
 }

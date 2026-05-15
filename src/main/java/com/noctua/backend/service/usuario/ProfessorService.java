@@ -2,6 +2,7 @@ package com.noctua.backend.service.usuario;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.noctua.backend.dto.Usuario.ProfessorRequestDTO;
 import com.noctua.backend.entity.Usuario.ProfessorEntity;
@@ -19,6 +20,7 @@ public class ProfessorService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Transactional
     public void cadastrarProfessor(ProfessorRequestDTO professorRequestDTO) {
 
         if (professorRequestDTO.getNome() == null || professorRequestDTO.getNome().isBlank() ||
@@ -31,8 +33,10 @@ public class ProfessorService {
             throw new IllegalArgumentException("E-mail já cadastrado.");
         }
 
+        UsuarioEntity usuario = usuarioRepository.save(criarUsuario(professorRequestDTO));
+
         ProfessorEntity professor = ProfessorEntity.builder()
-                .usuario(criarUsuario(professorRequestDTO))
+                .usuario(usuario)
                 .build();
 
         professorRepository.save(professor);
