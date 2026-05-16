@@ -94,5 +94,22 @@ public class PasswordResetService {
         usuario.setTokenSenhaUtilizado(true);
 
         usuarioRepository.save(usuario);
+
+        enviarConfirmacaoResetSenha(usuario.getEmail());
+    }
+
+    private void enviarConfirmacaoResetSenha(String email) {
+        String assunto = "Senha redefinida - Noctua";
+        String conteudo = """
+                Olá,
+
+                Sua senha do Noctua foi redefinida com sucesso.
+
+                Se você realizou essa alteração, nenhuma ação adicional é necessária.
+
+                Se você não reconhece essa alteração, entre em contato com o suporte imediatamente.
+                """;
+
+        emailService.enviarEmail(email, assunto, conteudo);
     }
 }
