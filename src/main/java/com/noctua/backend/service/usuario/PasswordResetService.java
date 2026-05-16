@@ -51,20 +51,14 @@ public class PasswordResetService {
         String link = frontendUrl + "/reset-password?token=" + token;
 
         String assunto = "Redefinição de senha - Noctua";
-        String conteudo = """
-                Olá,
+        String conteudo = construirEmailRedefinicaoSenha(usuario.getNome(), link);
 
-                Recebemos uma solicitação para redefinir a sua senha no Noctua.
-
-                Clique no link abaixo para cadastrar uma nova senha:
-                %s
-
-                Este link expira em 30 minutos.
-
-                Se você não fez essa solicitação, ignore este e-mail.
-                """.formatted(link);
-
-        emailService.enviarEmail(usuario.getEmail(), assunto, conteudo);
+        emailService.enviarEmailHtmlComImagemInline(
+                usuario.getEmail(),
+                assunto,
+                conteudo,
+                "noctuaKey",
+                "static/images/emails/noctua-key.png");
     }
 
     public void redefinirSenha(String token, String novaSenha, String confirmacaoSenha) {
@@ -111,5 +105,89 @@ public class PasswordResetService {
                 """;
 
         emailService.enviarEmail(email, assunto, conteudo);
+    }
+
+    private String construirEmailRedefinicaoSenha(String nome, String link) {
+        String nomeSeguro = escapeHtml(nome == null || nome.isBlank() ? "usuário" : nome);
+        String linkSeguro = escapeHtml(link);
+
+        return """
+                <!doctype html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Redefinição de senha</title>
+                </head>
+                <body style="margin:0;padding:0;background-color:#F8FAFC;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;width:100% !important;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F8FAFC;padding:48px 16px;">
+                        <tr>
+                            <td align="center">
+                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;background-color:#FFFFFF;border-radius:16px;border:1px solid #E2E8F0;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03);overflow:hidden;">
+                                    <tr>
+                                        <td align="center" style="padding:40px 40px 24px 40px;">
+                                            <img src="cid:noctuaKey" alt="Noctua Logo" width="64" height="64" style="display:block;margin-bottom:16px;border:0;">
+                                            <h1 style="margin:0;font-size:26px;font-weight:700;color:#0F172A;letter-spacing:-0.02em;">Noctua</h1>
+                                            <p style="margin:4px 0 0 0;font-size:13px;font-weight:400;color:#64748B;font-style:italic;">Insights poderosos que mudam a educação.</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:0 40px;">
+                                            <div style="height:1px;background-color:#E2E8F0;line-height:1px;font-size:1px;">&nbsp;</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:32px 40px 40px 40px;">
+                                            <h2 style="margin:0 0 16px 0;font-size:18px;font-weight:600;color:#1E293B;">Redefinir senha</h2>
+                                            <p style="margin:0 0 12px 0;font-size:15px;line-height:24px;color:#334155;">Olá, <strong>{{nome}}</strong>.</p>
+                                            <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#475569;">
+                                                Recebemos uma solicitação para redefinir a sua senha. Se você reconhece essa ação, basta clicar no botão abaixo para escolher uma nova credencial:
+                                            </p>
+                                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px;">
+                                                <tr>
+                                                    <td align="center">
+                                                        <a href="{{link}}" target="_blank" style="display:inline-block;background-color:#2D4356;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;box-shadow:0 2px 4px rgba(45,67,86,0.2);">Redefinir senha</a>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <p style="margin:0;font-size:14px;line-height:22px;color:#64748B;background-color:#F8FAFC;padding:12px 16px;border-radius:6px;border-left:3px solid #CBD5E1;">
+                                                <strong>Nota:</strong> Se você não fez essa solicitação, pode ignorar esta mensagem com segurança. Sua senha atual permanecerá a mesma.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:0 40px 32px 40px;">
+                                            <p style="margin:0;font-size:14px;line-height:20px;color:#475569;">
+                                                Obrigado,<br>
+                                                <span style="font-weight:600;color:#2D4356;">Equipe Noctua</span>
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;margin-top:24px;">
+                                    <tr>
+                                        <td align="center" style="font-size:12px;color:#94A3B8;line-height:18px;">
+                                            Este é um e-mail automático enviado pelo sistema Noctua.<br>
+                                            Por favor, não responda a esta mensagem.
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """
+                .replace("{{nome}}", nomeSeguro)
+                .replace("{{link}}", linkSeguro);
+    }
+
+    private String escapeHtml(String valor) {
+        return valor
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 }

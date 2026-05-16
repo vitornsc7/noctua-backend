@@ -1,9 +1,13 @@
 package com.noctua.backend.service.usuario;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
@@ -18,12 +22,46 @@ public class EmailService {
     }
 
     public void enviarEmail(String destinatario, String assunto, String conteudo) {
-        SimpleMailMessage mensagem = new SimpleMailMessage();
-        mensagem.setFrom(remetente);
-        mensagem.setTo(destinatario);
-        mensagem.setSubject(assunto);
-        mensagem.setText(conteudo);
+        enviar(destinatario, assunto, conteudo, false);
+    }
 
-        mailSender.send(mensagem);
+    public void enviarEmailHtml(String destinatario, String assunto, String conteudoHtml) {
+        enviar(destinatario, assunto, conteudoHtml, true);
+    }
+
+    public void enviarEmailHtmlComImagemInline(
+            String destinatario,
+            String assunto,
+            String conteudoHtml,
+            String contentId,
+            String caminhoImagem) {
+        try {
+            MimeMessage mensagem = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensagem, true, "UTF-8");
+            helper.setFrom(remetente);
+            helper.setTo(destinatario);
+            helper.setSubject(assunto);
+            helper.setText(conteudoHtml, true);
+            helper.addInline(contentId, new ClassPathResource(caminhoImagem));
+
+            mailSender.send(mensagem);
+        } catch (MessagingException exception) {
+            throw new IllegalStateException("Erro ao montar e-mail com imagem.", exception);
+        }
+    }
+
+    private void enviar(String destinatario, String assunto, String conteudo, boolean html) {
+        try {
+            MimeMessage mensagem = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensagem, "UTF-8");
+            helper.setFrom(remetente);
+            helper.setTo(destinatario);
+            helper.setSubject(assunto);
+            helper.setText(conteudo, html);
+
+            mailSender.send(mensagem);
+        } catch (MessagingException exception) {
+            throw new IllegalStateException("Erro ao montar e-mail.", exception);
+        }
     }
 }
