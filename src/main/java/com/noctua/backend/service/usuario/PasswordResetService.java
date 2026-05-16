@@ -14,6 +14,9 @@ import com.noctua.backend.repository.usuario.UsuarioRepository;
 @Service
 public class PasswordResetService {
 
+    private static final String NOCTUA_KEY_CONTENT_ID = "noctuaKey";
+    private static final String NOCTUA_KEY_IMAGE_PATH = "static/images/emails/noctua-key.png";
+
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
@@ -53,12 +56,7 @@ public class PasswordResetService {
         String assunto = "Redefinição de senha - Noctua";
         String conteudo = construirEmailRedefinicaoSenha(usuario.getNome(), link);
 
-        emailService.enviarEmailHtmlComImagemInline(
-                usuario.getEmail(),
-                assunto,
-                conteudo,
-                "noctuaKey",
-                "static/images/emails/noctua-key.png");
+        enviarEmailHtmlNoctua(usuario.getEmail(), assunto, conteudo);
     }
 
     public void redefinirSenha(String token, String novaSenha, String confirmacaoSenha) {
@@ -89,27 +87,72 @@ public class PasswordResetService {
 
         usuarioRepository.save(usuario);
 
-        enviarConfirmacaoResetSenha(usuario.getEmail());
+        enviarConfirmacaoResetSenha(usuario);
     }
 
-    private void enviarConfirmacaoResetSenha(String email) {
+    private void enviarConfirmacaoResetSenha(UsuarioEntity usuario) {
         String assunto = "Senha redefinida - Noctua";
-        String conteudo = """
-                Olá,
+        String conteudo = construirEmailConfirmacaoSenhaAlterada(usuario.getNome());
 
-                Sua senha do Noctua foi redefinida com sucesso.
+        enviarEmailHtmlNoctua(usuario.getEmail(), assunto, conteudo);
+    }
 
-                Se você realizou essa alteração, nenhuma ação adicional é necessária.
-
-                Se você não reconhece essa alteração, entre em contato com o suporte imediatamente.
-                """;
-
-        emailService.enviarEmail(email, assunto, conteudo);
+    private void enviarEmailHtmlNoctua(String destinatario, String assunto, String conteudo) {
+        emailService.enviarEmailHtmlComImagemInline(
+                destinatario,
+                assunto,
+                conteudo,
+                NOCTUA_KEY_CONTENT_ID,
+                NOCTUA_KEY_IMAGE_PATH);
     }
 
     private String construirEmailRedefinicaoSenha(String nome, String link) {
         String nomeSeguro = escapeHtml(nome == null || nome.isBlank() ? "usuário" : nome);
         String linkSeguro = escapeHtml(link);
+
+        return construirTemplateNoctua(
+                "Redefinição de senha",
+                """
+                        <h2 style="margin:0 0 16px 0;font-size:18px;font-weight:600;color:#1E293B;">Redefinir senha</h2>
+                        <p style="margin:0 0 12px 0;font-size:15px;line-height:24px;color:#334155;">Olá, <strong>{{nome}}</strong>.</p>
+                        <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#475569;">
+                            Recebemos uma solicitação para redefinir a sua senha. Se você reconhece essa ação, basta clicar no botão abaixo para escolher uma nova credencial:
+                        </p>
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px;">
+                            <tr>
+                                <td align="center">
+                                    <a href="{{link}}" target="_blank" style="display:inline-block;background-color:#2D4356;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;box-shadow:0 2px 4px rgba(45,67,86,0.2);">Redefinir senha</a>
+                                </td>
+                            </tr>
+                        </table>
+                        <p style="margin:0;font-size:14px;line-height:22px;color:#64748B;background-color:#F8FAFC;padding:12px 16px;border-radius:6px;border-left:3px solid #CBD5E1;">
+                            <strong>Nota:</strong> Se você não fez essa solicitação, pode ignorar esta mensagem com segurança. Sua senha atual permanecerá a mesma.
+                        </p>
+                        """
+                        .replace("{{nome}}", nomeSeguro)
+                        .replace("{{link}}", linkSeguro));
+    }
+
+    private String construirEmailConfirmacaoSenhaAlterada(String nome) {
+        String nomeSeguro = escapeHtml(nome == null || nome.isBlank() ? "usuário" : nome);
+
+        return construirTemplateNoctua(
+                "Senha alterada",
+                """
+                        <h2 style="margin:0 0 16px 0;font-size:18px;font-weight:600;color:#1E293B;">Senha alterada</h2>
+                        <p style="margin:0 0 12px 0;font-size:15px;line-height:24px;color:#334155;">Olá, <strong>{{nome}}</strong>.</p>
+                        <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#475569;">
+                            Sua senha foi alterada com sucesso. Se foi você quem realizou essa ação, nenhuma etapa adicional é necessária.
+                        </p>
+                        <p style="margin:0;font-size:14px;line-height:22px;color:#64748B;background-color:#F8FAFC;padding:12px 16px;border-radius:6px;border-left:3px solid #CBD5E1;">
+                            <strong>Atenção:</strong> Se você não reconhece essa alteração, redefina sua senha novamente e entre em contato com o suporte imediatamente.
+                        </p>
+                        """
+                        .replace("{{nome}}", nomeSeguro));
+    }
+
+    private String construirTemplateNoctua(String titulo, String conteudo) {
+        String tituloSeguro = escapeHtml(titulo);
 
         return """
                 <!doctype html>
@@ -117,7 +160,7 @@ public class PasswordResetService {
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Redefinição de senha</title>
+                    <title>{{titulo}} - Noctua</title>
                 </head>
                 <body style="margin:0;padding:0;background-color:#F8FAFC;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;width:100% !important;">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#F8FAFC;padding:48px 16px;">
@@ -126,7 +169,7 @@ public class PasswordResetService {
                                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;background-color:#FFFFFF;border-radius:16px;border:1px solid #E2E8F0;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03);overflow:hidden;">
                                     <tr>
                                         <td align="center" style="padding:40px 40px 24px 40px;">
-                                            <img src="cid:noctuaKey" alt="Noctua Logo" width="64" height="64" style="display:block;margin-bottom:16px;border:0;">
+                                            <img src="cid:noctuaKey" alt="Noctua Logo" width="82" height="82" style="display:block;margin-bottom:16px;border:0;">
                                             <h1 style="margin:0;font-size:26px;font-weight:700;color:#0F172A;letter-spacing:-0.02em;">Noctua</h1>
                                             <p style="margin:4px 0 0 0;font-size:13px;font-weight:400;color:#64748B;font-style:italic;">Insights poderosos que mudam a educação.</p>
                                         </td>
@@ -138,21 +181,7 @@ public class PasswordResetService {
                                     </tr>
                                     <tr>
                                         <td style="padding:32px 40px 40px 40px;">
-                                            <h2 style="margin:0 0 16px 0;font-size:18px;font-weight:600;color:#1E293B;">Redefinir senha</h2>
-                                            <p style="margin:0 0 12px 0;font-size:15px;line-height:24px;color:#334155;">Olá, <strong>{{nome}}</strong>.</p>
-                                            <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#475569;">
-                                                Recebemos uma solicitação para redefinir a sua senha. Se você reconhece essa ação, basta clicar no botão abaixo para escolher uma nova credencial:
-                                            </p>
-                                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px;">
-                                                <tr>
-                                                    <td align="center">
-                                                        <a href="{{link}}" target="_blank" style="display:inline-block;background-color:#2D4356;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;box-shadow:0 2px 4px rgba(45,67,86,0.2);">Redefinir senha</a>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                            <p style="margin:0;font-size:14px;line-height:22px;color:#64748B;background-color:#F8FAFC;padding:12px 16px;border-radius:6px;border-left:3px solid #CBD5E1;">
-                                                <strong>Nota:</strong> Se você não fez essa solicitação, pode ignorar esta mensagem com segurança. Sua senha atual permanecerá a mesma.
-                                            </p>
+                                            {{conteudo}}
                                         </td>
                                     </tr>
                                     <tr>
@@ -178,8 +207,8 @@ public class PasswordResetService {
                 </body>
                 </html>
                 """
-                .replace("{{nome}}", nomeSeguro)
-                .replace("{{link}}", linkSeguro);
+                .replace("{{titulo}}", tituloSeguro)
+                .replace("{{conteudo}}", conteudo);
     }
 
     private String escapeHtml(String valor) {
