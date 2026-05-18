@@ -13,6 +13,7 @@ import com.noctua.backend.entity.Avaliacao.AvaliacaoEntity;
 public interface AvaliacaoRepository extends JpaRepository<AvaliacaoEntity, Long>, JpaSpecificationExecutor<AvaliacaoEntity> {
 
     List<AvaliacaoEntity> findByTurmaId(Long turmaId);
+    List<AvaliacaoEntity> findByTurmaIdAndAvaliacaoPaiIsNull(Long turmaId);
 
     boolean existsByAvaliacaoPaiId(Long avaliacaoPaiId);
 
