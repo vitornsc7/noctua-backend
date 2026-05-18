@@ -1,5 +1,6 @@
 package com.noctua.backend.controller.turma;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.noctua.backend.dto.Avaliacao.AvaliacaoRequestDTO;
 import com.noctua.backend.dto.Avaliacao.AvaliacaoResponseDTO;
+import com.noctua.backend.dto.Avaliacao.MediaPonderadaTurmaDTO;
 import com.noctua.backend.dto.Nota.NotaRequestDTO;
 import com.noctua.backend.dto.Nota.NotaResponseDTO;
 import com.noctua.backend.enums.TipoAvaliacao;
@@ -94,5 +96,19 @@ public class AvaliacaoController {
             @PathVariable Long avaliacaoId) {
         AvaliacaoResponseDTO response = avaliacaoService.criarChamada(authentication.getName(), turmaId, avaliacaoId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/media-ponderada")
+    public ResponseEntity<MediaPonderadaTurmaDTO> calcularMediaPonderadaTurma(
+            @PathVariable Long turmaId) {
+        return ResponseEntity.ok(avaliacaoService.calcularMediaPonderadaTurma(turmaId));
+    }
+
+    @GetMapping("/media-ponderada/aluno/{alunoId}/periodo/{periodo}")
+    public ResponseEntity<BigDecimal> calcularMediaPonderadaAluno(
+            @PathVariable Long turmaId,
+            @PathVariable Long alunoId,
+            @PathVariable Integer periodo) {
+        return ResponseEntity.ok(avaliacaoService.calcularMediaPonderada(alunoId, periodo));
     }
 }

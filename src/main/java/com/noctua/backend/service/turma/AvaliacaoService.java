@@ -3,7 +3,12 @@ package com.noctua.backend.service.turma;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import jakarta.persistence.criteria.Predicate;
 
@@ -16,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.noctua.backend.dto.Avaliacao.AvaliacaoRequestDTO;
 import com.noctua.backend.dto.Avaliacao.AvaliacaoResponseDTO;
+import com.noctua.backend.dto.Avaliacao.MediaPonderadaTurmaDTO;
 import com.noctua.backend.dto.Nota.NotaRequestDTO;
 import com.noctua.backend.dto.Nota.NotaResponseDTO;
 import com.noctua.backend.entity.Aluno.AlunoEntity;
@@ -311,5 +317,164 @@ public class AvaliacaoService {
         avaliacaoRepository.save(avaliacao);
 
         return toNotaResponseDTO(nota);
+    }
+
+    public BigDecimal calcularMediaPonderada(Long idAluno, Integer numeroPeriodo) {
+        AlunoEntity aluno = alunoRepository.findById(idAluno)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Aluno não encontrado"));
+
+        Long idTurma = aluno.getTurma().getId();
+
+        List<AvaliacaoEntity> todasAvaliacoes = avaliacaoRepository.findByTurmaId(idTurma);
+        List<NotaEntity> notasAluno = notaRepository.findByAlunoIdAndAvaliacao_TurmaId(idAluno, idTurma);
+
+        List<AvaliacaoEntity> rootNoPeriodo = todasAvaliacoes.stream()
+                .filter(a -> a.getAvaliacaoPai() == null && a.getPeriodo().equals(numeroPeriodo))
+                .toList();
+
+        Map<Long, AvaliacaoEntity> filhaPorPaiId = todasAvaliacoes.stream()
+                .filter(a -> a.getAvaliacaoPai() != null)
+                .collect(Collectors.toMap(a -> a.getAvaliacaoPai().getId(), a -> a, (x, y) -> y));
+
+        Map<String, NotaEntity> notaMap = notasAluno.stream()
+                .collect(Collectors.toMap(
+                        n -> n.getAluno().getId() + ":" + n.getAvaliacao().getId(),
+                        n -> n,
+                        (x, y) -> y));
+
+        return calcularMediaAlunoNoPeriodo(idAluno, numeroPeriodo, rootNoPeriodo, filhaPorPaiId, notaMap);
+    }
+
+    public MediaPonderadaTurmaDTO calcularMediaPonderadaTurma(Long idTurma) {
+        turmaRepository.findById(idTurma)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada"));
+
+        List<AvaliacaoEntity> todasAvaliacoes = avaliacaoRepository.findByTurmaId(idTurma);
+        List<NotaEntity> todasNotas = notaRepository.findByAvaliacao_TurmaId(idTurma);
+        List<AlunoEntity> alunos = alunoRepository.findByTurmaIdAndAtivo(idTurma, true);
+
+        List<AvaliacaoEntity> rootAvaliacoes = todasAvaliacoes.stream()
+                .filter(a -> a.getAvaliacaoPai() == null)
+                .toList();
+
+        Map<Long, AvaliacaoEntity> filhaPorPaiId = todasAvaliacoes.stream()
+                .filter(a -> a.getAvaliacaoPai() != null)
+                .collect(Collectors.toMap(a -> a.getAvaliacaoPai().getId(), a -> a, (x, y) -> y));
+
+        Map<String, NotaEntity> notaMap = todasNotas.stream()
+                .collect(Collectors.toMap(
+                        n -> n.getAluno().getId() + ":" + n.getAvaliacao().getId(),
+                        n -> n,
+                        (x, y) -> y));
+
+        TreeSet<Integer> periodos = rootAvaliacoes.stream()
+                .map(AvaliacaoEntity::getPeriodo)
+                .collect(Collectors.toCollection(TreeSet::new));
+
+        List<MediaPonderadaTurmaDTO.MediaAlunoDTO> mediasAlunos = alunos.stream()
+                .sorted(Comparator.comparing(AlunoEntity::getNome))
+                .map(aluno -> {
+                    Map<Integer, BigDecimal> mediaPorPeriodo = new LinkedHashMap<>();
+                    for (Integer periodo : periodos) {
+                        mediaPorPeriodo.put(periodo, calcularMediaAlunoNoPeriodo(
+                                aluno.getId(), periodo, rootAvaliacoes, filhaPorPaiId, notaMap));
+                    }
+                    return new MediaPonderadaTurmaDTO.MediaAlunoDTO(aluno.getId(), aluno.getNome(), mediaPorPeriodo);
+                })
+                .toList();
+
+        Map<Integer, MediaPonderadaTurmaDTO.MediaResumoPeriodoDTO> resumoPorPeriodo = new LinkedHashMap<>();
+        for (Integer periodo : periodos) {
+            List<AvaliacaoEntity> avaliacoesNoPeriodo = rootAvaliacoes.stream()
+                    .filter(a -> a.getPeriodo().equals(periodo))
+                    .toList();
+
+            resumoPorPeriodo.put(periodo, new MediaPonderadaTurmaDTO.MediaResumoPeriodoDTO(
+                    calcularMediaTurmaDoTipo(alunos, avaliacoesNoPeriodo, TipoAvaliacao.PROVA, filhaPorPaiId, notaMap),
+                    calcularMediaTurmaDoTipo(alunos, avaliacoesNoPeriodo, TipoAvaliacao.TRABALHO, filhaPorPaiId, notaMap),
+                    calcularMediaTurmaDoTipo(alunos, avaliacoesNoPeriodo, TipoAvaliacao.ATIVIDADE, filhaPorPaiId, notaMap)));
+        }
+
+        return new MediaPonderadaTurmaDTO(mediasAlunos, resumoPorPeriodo);
+    }
+
+    private BigDecimal resolverNotaEfetiva(
+            Long alunoId,
+            AvaliacaoEntity avaliacao,
+            Map<Long, AvaliacaoEntity> filhaPorPaiId,
+            Map<String, NotaEntity> notaMap) {
+
+        NotaEntity nota = notaMap.get(alunoId + ":" + avaliacao.getId());
+        if (nota != null && Boolean.FALSE.equals(nota.getNaoRealizada()) && nota.getValor() != null) {
+            return nota.getValor();
+        }
+
+        AvaliacaoEntity filha = filhaPorPaiId.get(avaliacao.getId());
+        if (filha != null) {
+            NotaEntity notaFilha = notaMap.get(alunoId + ":" + filha.getId());
+            if (notaFilha != null && Boolean.FALSE.equals(notaFilha.getNaoRealizada()) && notaFilha.getValor() != null) {
+                return notaFilha.getValor();
+            }
+        }
+
+        return null;
+    }
+
+    private BigDecimal calcularMediaAlunoNoPeriodo(
+            Long alunoId,
+            Integer periodo,
+            List<AvaliacaoEntity> rootAvaliacoes,
+            Map<Long, AvaliacaoEntity> filhaPorPaiId,
+            Map<String, NotaEntity> notaMap) {
+
+        BigDecimal somaPonderada = BigDecimal.ZERO;
+        BigDecimal somaPesos = BigDecimal.ZERO;
+
+        for (AvaliacaoEntity avaliacao : rootAvaliacoes) {
+            if (!avaliacao.getPeriodo().equals(periodo)) continue;
+
+            BigDecimal notaEfetiva = resolverNotaEfetiva(alunoId, avaliacao, filhaPorPaiId, notaMap);
+            if (notaEfetiva != null) {
+                BigDecimal peso = BigDecimal.valueOf(avaliacao.getPeso());
+                somaPonderada = somaPonderada.add(notaEfetiva.multiply(peso));
+                somaPesos = somaPesos.add(peso);
+            }
+        }
+
+        return somaPesos.compareTo(BigDecimal.ZERO) > 0
+                ? somaPonderada.divide(somaPesos, 2, RoundingMode.HALF_UP)
+                : null;
+    }
+
+    private BigDecimal calcularMediaTurmaDoTipo(
+            List<AlunoEntity> alunos,
+            List<AvaliacaoEntity> avaliacoesNoPeriodo,
+            TipoAvaliacao tipo,
+            Map<Long, AvaliacaoEntity> filhaPorPaiId,
+            Map<String, NotaEntity> notaMap) {
+
+        List<AvaliacaoEntity> doTipo = avaliacoesNoPeriodo.stream()
+                .filter(a -> tipo.equals(a.getTipo()))
+                .toList();
+
+        if (doTipo.isEmpty()) return null;
+
+        BigDecimal soma = BigDecimal.ZERO;
+        BigDecimal totalPesos = BigDecimal.ZERO;
+
+        for (AlunoEntity aluno : alunos) {
+            for (AvaliacaoEntity avaliacao : doTipo) {
+                BigDecimal nota = resolverNotaEfetiva(aluno.getId(), avaliacao, filhaPorPaiId, notaMap);
+                if (nota != null) {
+                    BigDecimal peso = BigDecimal.valueOf(avaliacao.getPeso());
+                    soma = soma.add(nota.multiply(peso));
+                    totalPesos = totalPesos.add(peso);
+                }
+            }
+        }
+
+        return totalPesos.compareTo(BigDecimal.ZERO) > 0
+                ? soma.divide(totalPesos, 2, RoundingMode.HALF_UP)
+                : null;
     }
 }
