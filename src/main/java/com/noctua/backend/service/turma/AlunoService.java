@@ -1,4 +1,4 @@
-package com.noctua.backend.service.usuario;
+package com.noctua.backend.service.turma;
 
 import java.util.List;
 
