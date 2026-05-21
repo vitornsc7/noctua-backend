@@ -10,6 +10,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,12 +23,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import org.springframework.security.core.Authentication;
-
 import com.noctua.backend.dto.Aluno.AlunoRequestDTO;
 import com.noctua.backend.dto.Aluno.AlunoResponseDTO;
 import com.noctua.backend.service.GeminiService;
-import com.noctua.backend.service.usuario.AlunoService;
+import com.noctua.backend.service.turma.AlunoService;
 
 import lombok.RequiredArgsConstructor;
 
