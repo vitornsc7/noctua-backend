@@ -14,7 +14,7 @@ FROM deps AS dev
 
 COPY . .
 EXPOSE 8080
-CMD ["mvn", "spring-boot:run"]
+CMD ["mvn", "spring-boot:run", "-DskipTests"]
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
