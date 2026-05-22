@@ -1,4 +1,4 @@
-package com.noctua.backend.controller.twoFactor;
+package com.noctua.backend.dto.twoFactor;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

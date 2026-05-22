@@ -8,6 +8,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import com.noctua.backend.dto.twoFactor.TwoFactorSetupResponseDTO;
+import com.noctua.backend.dto.twoFactor.TwoFactorVerifySetupRequestDTO;
 import com.noctua.backend.entity.Usuario.UsuarioEntity;
 import com.noctua.backend.repository.usuario.UsuarioRepository;
 import com.noctua.backend.service.twoFactor.TwoFactorService;
