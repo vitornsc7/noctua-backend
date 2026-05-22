@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 
 import com.noctua.backend.dto.twoFactor.TwoFactorSetupResponseDTO;
+import com.noctua.backend.dto.twoFactor.TwoFactorVerifySetupRequestDTO;
 import com.noctua.backend.entity.Usuario.UsuarioEntity;
 import com.noctua.backend.repository.usuario.UsuarioRepository;
 import com.noctua.backend.service.twoFactor.TwoFactorService;
