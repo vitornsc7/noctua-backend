@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "professores")
@@ -33,4 +34,20 @@ public class ProfessorEntity {
 
     @Column
     private LocalDateTime dataExpiracao;
+
+    @Setter
+    @Column(name = "frequencia_atencao_fim")
+    private Double frequenciaAtencaoFim;
+
+    @Setter
+    @Column(name = "frequencia_regular_fim")
+    private Double frequenciaRegularFim;
+
+    @Setter
+    @Column(name = "desempenho_acima")
+    private Double desempenhoAcima;
+
+    @Setter
+    @Column(name = "desempenho_abaixo")
+    private Double desempenhoAbaixo;
 }
