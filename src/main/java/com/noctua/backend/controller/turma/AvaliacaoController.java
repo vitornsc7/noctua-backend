@@ -1,9 +1,11 @@
 package com.noctua.backend.controller.turma;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -65,6 +67,12 @@ public class AvaliacaoController {
         return ResponseEntity.ok(avaliacaoService.buscarPorId(turmaId, avaliacaoId));
     }
 
+    @GetMapping("/notas")
+    public ResponseEntity<List<NotaResponseDTO>> listarTodasNotas(
+            @PathVariable Long turmaId) {
+        return ResponseEntity.ok(avaliacaoService.listarTodasNotasPorTurma(turmaId));
+    }
+
     @GetMapping("/{avaliacaoId}/notas")
     public ResponseEntity<List<NotaResponseDTO>> listarNotas(
             @PathVariable Long turmaId,
@@ -93,8 +101,9 @@ public class AvaliacaoController {
     public ResponseEntity<AvaliacaoResponseDTO> criarChamada(
             Authentication authentication,
             @PathVariable Long turmaId,
-            @PathVariable Long avaliacaoId) {
-        AvaliacaoResponseDTO response = avaliacaoService.criarChamada(authentication.getName(), turmaId, avaliacaoId);
+            @PathVariable Long avaliacaoId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAplicacao) {
+        AvaliacaoResponseDTO response = avaliacaoService.criarChamada(authentication.getName(), turmaId, avaliacaoId, dataAplicacao);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

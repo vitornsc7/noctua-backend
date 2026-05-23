@@ -2,6 +2,7 @@ package com.noctua.backend.service.turma;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -127,6 +128,15 @@ public class AvaliacaoService {
         return toResponseDTO(entity);
     }
 
+    public List<NotaResponseDTO> listarTodasNotasPorTurma(Long turmaId) {
+        turmaRepository.findById(turmaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada"));
+
+        return notaRepository.findByAvaliacao_TurmaId(turmaId).stream()
+                .map(this::toNotaResponseDTO)
+                .toList();
+    }
+
     public List<NotaResponseDTO> listarNotasPorAvaliacao(Long turmaId, Long avaliacaoId) {
         AvaliacaoEntity avaliacao = avaliacaoRepository.findById(avaliacaoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não encontrada"));
@@ -189,7 +199,7 @@ public class AvaliacaoService {
         return dto;
     }
 
-    public AvaliacaoResponseDTO criarChamada(String emailProfessor, Long turmaId, Long avaliacaoId) {
+    public AvaliacaoResponseDTO criarChamada(String emailProfessor, Long turmaId, Long avaliacaoId, LocalDate dataAplicacao) {
         buscarProfessorAutenticado(emailProfessor);
 
         AvaliacaoEntity pai = avaliacaoRepository.findById(avaliacaoId)
@@ -215,7 +225,7 @@ public class AvaliacaoService {
 
         AvaliacaoEntity nova = new AvaliacaoEntity();
         nova.setTema(pai.getTema());
-        nova.setData(pai.getData());
+        nova.setData(dataAplicacao != null ? dataAplicacao.atStartOfDay() : pai.getData());
         nova.setPeso(pai.getPeso());
         nova.setTipo(pai.getTipo());
         nova.setPeriodo(pai.getPeriodo());
@@ -299,7 +309,7 @@ public class AvaliacaoService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Não é possível marcar como 'não compareceu' um aluno que já possui nota lançada.");
             }
-            if (Boolean.TRUE.equals(nota.getNaoRealizada()) && request.getValor() != null) {
+            if (Boolean.TRUE.equals(nota.getNaoRealizada()) && !Boolean.TRUE.equals(request.getNaoRealizada()) && request.getValor() != null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Não é possível lançar nota para um aluno marcado como 'não compareceu'.");
             }
@@ -307,7 +317,7 @@ public class AvaliacaoService {
 
         boolean naoRealizada = Boolean.TRUE.equals(request.getNaoRealizada());
         nota.setNaoRealizada(naoRealizada);
-        nota.setValor(naoRealizada ? null : request.getValor());
+        nota.setValor(naoRealizada ? BigDecimal.ZERO : request.getValor());
         notaRepository.save(nota);
 
         List<NotaEntity> todasNotas = notaRepository.findByAvaliacaoId(avaliacaoId);
@@ -405,10 +415,29 @@ public class AvaliacaoService {
             Map<String, NotaEntity> notaMap) {
 
         NotaEntity nota = notaMap.get(alunoId + ":" + avaliacao.getId());
-        if (nota != null && Boolean.FALSE.equals(nota.getNaoRealizada()) && nota.getValor() != null) {
+        if (nota == null) {
+            return null;
+        }
+
+        if (Boolean.TRUE.equals(nota.getNaoRealizada())) {
+            // Segunda chamada tem prioridade sobre o não comparecimento
+            AvaliacaoEntity filha = filhaPorPaiId.get(avaliacao.getId());
+            if (filha != null) {
+                NotaEntity notaFilha = notaMap.get(alunoId + ":" + filha.getId());
+                if (notaFilha != null && Boolean.FALSE.equals(notaFilha.getNaoRealizada()) && notaFilha.getValor() != null) {
+                    return notaFilha.getValor();
+                }
+            }
+            // Sem 2ª chamada válida: conta como 0 (valor já é 0 em registros novos; compat. com registros antigos que têm valor null)
+            return nota.getValor() != null ? nota.getValor() : BigDecimal.ZERO;
+        }
+
+        // Nota regular com valor lançado
+        if (nota.getValor() != null) {
             return nota.getValor();
         }
 
+        // Nota da avaliação pai ainda não lançada; verifica se há 2ª chamada com nota
         AvaliacaoEntity filha = filhaPorPaiId.get(avaliacao.getId());
         if (filha != null) {
             NotaEntity notaFilha = notaMap.get(alunoId + ":" + filha.getId());

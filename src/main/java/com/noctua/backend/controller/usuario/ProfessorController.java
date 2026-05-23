@@ -4,11 +4,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.noctua.backend.dto.Usuario.LimitesRequestDTO;
+import com.noctua.backend.dto.Usuario.LimitesResponseDTO;
 import com.noctua.backend.dto.Usuario.ProfessorRequestDTO;
 import com.noctua.backend.service.usuario.ProfessorService;
 
@@ -35,5 +40,17 @@ public class ProfessorController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erro interno ao cadastrar professor: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/limites")
+    public ResponseEntity<LimitesResponseDTO> getLimites(Authentication authentication) {
+        return ResponseEntity.ok(professorService.getLimites(authentication.getName()));
+    }
+
+    @PutMapping("/limites")
+    public ResponseEntity<LimitesResponseDTO> atualizarLimites(
+            Authentication authentication,
+            @RequestBody LimitesRequestDTO request) {
+        return ResponseEntity.ok(professorService.atualizarLimites(authentication.getName(), request));
     }
 }
