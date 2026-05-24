@@ -145,13 +145,13 @@ class AvaliacaoControllerTest {
         serviceResponse.setAvaliacaoPaiId(50L);
 
         when(authentication.getName()).thenReturn("prof@email.com");
-        when(avaliacaoService.criarChamada("prof@email.com", 10L, 50L)).thenReturn(serviceResponse);
+        when(avaliacaoService.criarChamada("prof@email.com", 10L, 50L, null)).thenReturn(serviceResponse);
 
-        ResponseEntity<AvaliacaoResponseDTO> response = avaliacaoController.criarChamada(authentication, 10L, 50L);
+        ResponseEntity<AvaliacaoResponseDTO> response = avaliacaoController.criarChamada(authentication, 10L, 50L, null);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(serviceResponse, response.getBody());
-        verify(avaliacaoService).criarChamada("prof@email.com", 10L, 50L);
+        verify(avaliacaoService).criarChamada("prof@email.com", 10L, 50L, null);
     }
 
     // Teste 8: endpoint GET /turmas/{turmaId}/avaliacoes/media-ponderada retorna médias da turma.
