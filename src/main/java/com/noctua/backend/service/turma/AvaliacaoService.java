@@ -3,6 +3,8 @@ package com.noctua.backend.service.turma;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -22,7 +24,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.noctua.backend.dto.Avaliacao.AvaliacaoRequestDTO;
 import com.noctua.backend.dto.Avaliacao.AvaliacaoResponseDTO;
+import com.noctua.backend.dto.Avaliacao.AvisoAvaliacaoPendenteDTO;
 import com.noctua.backend.dto.Avaliacao.MediaPonderadaTurmaDTO;
+import com.noctua.backend.dto.Dashboard.DashboardMetricasDTO;
 import com.noctua.backend.dto.Nota.NotaRequestDTO;
 import com.noctua.backend.dto.Nota.NotaResponseDTO;
 import com.noctua.backend.entity.Aluno.AlunoEntity;
@@ -505,5 +509,39 @@ public class AvaliacaoService {
         return totalPesos.compareTo(BigDecimal.ZERO) > 0
                 ? soma.divide(totalPesos, 2, RoundingMode.HALF_UP)
                 : null;
+    }
+
+    public List<AvisoAvaliacaoPendenteDTO> listarAvisosAvaliacoesPendentes(String emailProfessor) {
+        ProfessorEntity professor = buscarProfessorAutenticado(emailProfessor);
+        LocalDateTime dataLimite = LocalDateTime.now().minusDays(14);
+        System.out.println(LocalDateTime.now());
+
+        List<AvaliacaoEntity> avaliacoes = avaliacaoRepository
+                .findAvaliacoesPendentesComNotasPorProfessor(professor.getId(), dataLimite);
+
+        return avaliacoes.stream().map(a -> {
+            int alunosSemNota = (int) notaRepository.findByAvaliacaoId(a.getId()).stream()
+                    .filter(n -> n.getValor() == null)
+                    .count();
+
+            AvisoAvaliacaoPendenteDTO dto = new AvisoAvaliacaoPendenteDTO();
+            dto.setAvaliacaoId(a.getId());
+            dto.setTurmaId(a.getTurma().getId());
+            dto.setTurmaNome(a.getTurma().getNome());
+            dto.setTema(a.getTema());
+            dto.setTipo(a.getTipo());
+            dto.setDataAplicacao(a.getData());
+            dto.setDiasPendentes(ChronoUnit.DAYS.between(a.getData().toLocalDate(), LocalDate.now()));
+            dto.setAlunosSemNota(alunosSemNota);
+            return dto;
+        }).toList();
+    }
+
+    public DashboardMetricasDTO getMetricasDashboard(String emailProfessor) {
+        ProfessorEntity professor = buscarProfessorAutenticado(emailProfessor);
+        long totalTurmas = turmaRepository.countByProfessorIdAndAtivoTrue(professor.getId());
+        long totalAlunos = alunoRepository.countAtivosByProfessorId(professor.getId());
+        long totalAvaliacoes = avaliacaoRepository.countByProfessorId(professor.getId());
+        return new DashboardMetricasDTO(totalAlunos, totalTurmas, totalAvaliacoes);
     }
 }

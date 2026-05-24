@@ -1,5 +1,7 @@
 package com.noctua.backend.controller.usuario;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -12,9 +14,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.noctua.backend.dto.Avaliacao.AvisoAvaliacaoPendenteDTO;
+import com.noctua.backend.dto.Dashboard.DashboardMetricasDTO;
 import com.noctua.backend.dto.Usuario.LimitesRequestDTO;
 import com.noctua.backend.dto.Usuario.LimitesResponseDTO;
 import com.noctua.backend.dto.Usuario.ProfessorRequestDTO;
+import com.noctua.backend.service.turma.AvaliacaoService;
 import com.noctua.backend.service.usuario.ProfessorService;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +32,7 @@ public class ProfessorController {
     private static final Logger log = LoggerFactory.getLogger(ProfessorController.class);
 
     private final ProfessorService professorService;
+    private final AvaliacaoService avaliacaoService;
 
     @PostMapping
     public ResponseEntity<String> cadastrar(@RequestBody ProfessorRequestDTO professorRequestDTO) {
@@ -52,5 +58,15 @@ public class ProfessorController {
             Authentication authentication,
             @RequestBody LimitesRequestDTO request) {
         return ResponseEntity.ok(professorService.atualizarLimites(authentication.getName(), request));
+    }
+
+    @GetMapping("/avisos")
+    public ResponseEntity<List<AvisoAvaliacaoPendenteDTO>> getAvisosPendentes(Authentication authentication) {
+        return ResponseEntity.ok(avaliacaoService.listarAvisosAvaliacoesPendentes(authentication.getName()));
+    }
+
+    @GetMapping("/metricas")
+    public ResponseEntity<DashboardMetricasDTO> getMetricasDashboard(Authentication authentication) {
+        return ResponseEntity.ok(avaliacaoService.getMetricasDashboard(authentication.getName()));
     }
 }
