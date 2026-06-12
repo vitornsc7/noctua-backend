@@ -218,7 +218,22 @@ public class AvaliacaoService {
                     "Esta avaliação já possui uma chamada subsequente.");
         }
 
-        List<NotaEntity> naoRealizadas = notaRepository.findByAvaliacaoId(avaliacaoId).stream()
+        if (!Boolean.TRUE.equals(pai.getConcluida())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A avaliação precisa estar com status CONCLUÍDA para criar uma nova chamada.");
+        }
+
+        List<NotaEntity> todasNotas = notaRepository.findByAvaliacaoId(avaliacaoId);
+
+        boolean temNotasPendentes = todasNotas.stream()
+                .anyMatch(n -> n.getValor() == null && !Boolean.TRUE.equals(n.getNaoRealizada()));
+
+        if (temNotasPendentes) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Há alunos com notas não preenchidas. Preencha todas as notas antes de criar uma nova chamada.");
+        }
+
+        List<NotaEntity> naoRealizadas = todasNotas.stream()
                 .filter(n -> Boolean.TRUE.equals(n.getNaoRealizada()))
                 .toList();
 
