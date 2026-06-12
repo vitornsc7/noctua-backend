@@ -140,7 +140,8 @@ class AuthControllerTest {
                 1L,
                 "Professor",
                 "prof@email.com",
-                "PROFESSOR");
+                "PROFESSOR",
+                false);
 
         when(authentication.getName()).thenReturn("prof@email.com");
         when(authService.buscarUsuarioAutenticado("prof@email.com")).thenReturn(serviceResponse);
@@ -160,7 +161,8 @@ class AuthControllerTest {
                 1L,
                 "Novo Nome",
                 "prof@email.com",
-                "PROFESSOR");
+                "PROFESSOR",
+                false);
 
         when(authentication.getName()).thenReturn("prof@email.com");
         when(authService.atualizarUsuarioAutenticado("prof@email.com", request)).thenReturn(serviceResponse);

@@ -72,4 +72,25 @@ public class TwoFactorController {
 
         return ResponseEntity.ok("2FA ativado com sucesso.");
     }
+
+    @DeleteMapping("/disable")
+    public ResponseEntity<?> disable(Authentication authentication) {
+        String email = authentication.getName();
+
+        UsuarioEntity usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+
+        if (!Boolean.TRUE.equals(usuario.getTwoFactorEnabled())) {
+            return ResponseEntity.badRequest().body("O 2FA não está ativo para este usuário.");
+        }
+
+        usuario.setTwoFactorEnabled(false);
+        usuario.setTwoFactorSecret(null);
+        usuario.setTwoFactorTempSecret(null);
+        usuario.setTwoFactorConfirmedAt(null);
+
+        usuarioRepository.save(usuario);
+
+        return ResponseEntity.ok("2FA removido com sucesso.");
+    }
 }

@@ -109,7 +109,8 @@ public class AuthService {
                 usuario.getId(),
                 usuario.getNome(),
                 usuario.getEmail(),
-                resolverRole(email));
+                resolverRole(email),
+                Boolean.TRUE.equals(usuario.getTwoFactorEnabled()));
     }
 
     public AuthenticatedUserResponseDTO atualizarUsuarioAutenticado(
@@ -142,7 +143,8 @@ public class AuthService {
                 usuarioAtualizado.getId(),
                 usuarioAtualizado.getNome(),
                 usuarioAtualizado.getEmail(),
-                resolverRole(usuarioAtualizado.getEmail()));
+                resolverRole(usuarioAtualizado.getEmail()),
+                Boolean.TRUE.equals(usuarioAtualizado.getTwoFactorEnabled()));
     }
 
     public void excluirUsuarioAutenticado(String email) {
