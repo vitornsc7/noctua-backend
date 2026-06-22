@@ -84,8 +84,8 @@ class PasswordResetServiceTest {
                                 org.mockito.Mockito.contains("Redefini"),
                                 org.mockito.Mockito.contains("http://localhost:5173/reset-password?token="
                                                 + usuario.getTokenSenhaReset()),
-                                org.mockito.Mockito.eq("noctuaKey"),
-                                org.mockito.Mockito.eq("static/images/emails/noctua-key.png"));
+                                org.mockito.Mockito.eq("passwordSecurity"),
+                                org.mockito.Mockito.eq("static/images/emails/noctua-password-security.png"));
         }
 
         // Teste 3: senhas diferentes --> bloqueiam a redefinição antes de buscar token.
@@ -193,8 +193,8 @@ class PasswordResetServiceTest {
                                 org.mockito.Mockito.eq(usuario.getEmail()),
                                 org.mockito.Mockito.contains("Senha redefinida"),
                                 org.mockito.Mockito.contains("Senha alterada"),
-                                org.mockito.Mockito.eq("noctuaKey"),
-                                org.mockito.Mockito.eq("static/images/emails/noctua-key.png"));
+                                org.mockito.Mockito.eq("passwordSecurity"),
+                                org.mockito.Mockito.eq("static/images/emails/noctua-password-security.png"));
         }
 
         private UsuarioEntity criarUsuario() {
