@@ -14,8 +14,8 @@ import com.noctua.backend.repository.usuario.UsuarioRepository;
 @Service
 public class PasswordResetService {
 
-    private static final String NOCTUA_KEY_CONTENT_ID = "noctuaKey";
-    private static final String NOCTUA_KEY_IMAGE_PATH = "static/images/emails/noctua-key.png";
+    private static final String PASSWORD_SECURITY_CONTENT_ID = "passwordSecurity";
+    private static final String PASSWORD_SECURITY_IMAGE_PATH = "static/images/emails/noctua-password-security.png";
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
@@ -102,8 +102,8 @@ public class PasswordResetService {
                 destinatario,
                 assunto,
                 conteudo,
-                NOCTUA_KEY_CONTENT_ID,
-                NOCTUA_KEY_IMAGE_PATH);
+                PASSWORD_SECURITY_CONTENT_ID,
+                PASSWORD_SECURITY_IMAGE_PATH);
     }
 
     private String construirEmailRedefinicaoSenha(String nome, String link) {
@@ -169,7 +169,7 @@ public class PasswordResetService {
                                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:520px;background-color:#FFFFFF;border-radius:16px;border:1px solid #E2E8F0;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03);overflow:hidden;">
                                     <tr>
                                         <td align="center" style="padding:40px 40px 24px 40px;">
-                                            <img src="cid:noctuaKey" alt="Noctua Logo" width="82" height="82" style="display:block;margin-bottom:16px;border:0;">
+                                            <img src="cid:passwordSecurity" alt="Coruja Noctua protegendo uma senha" width="220" style="display:block;width:100%;max-width:220px;height:auto;margin:0 auto 20px;border:0;">
                                             <h1 style="margin:0;font-size:26px;font-weight:700;color:#0F172A;letter-spacing:-0.02em;">Noctua</h1>
                                             <p style="margin:4px 0 0 0;font-size:13px;font-weight:400;color:#64748B;font-style:italic;">Insights poderosos que mudam a educação.</p>
                                         </td>
