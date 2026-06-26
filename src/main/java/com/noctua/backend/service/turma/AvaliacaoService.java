@@ -230,7 +230,7 @@ public class AvaliacaoService {
 
         if (temNotasPendentes) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Há alunos com notas não preenchidas. Preencha todas as notas antes de criar uma nova chamada.");
+                    "Existem alunos com notas não preenchidas. Preencha todas as notas antes de criar uma nova chamada.");
         }
 
         List<NotaEntity> naoRealizadas = todasNotas.stream()
@@ -239,7 +239,7 @@ public class AvaliacaoService {
 
         if (naoRealizadas.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Não há alunos marcados como não compareceu para criar uma nova chamada.");
+                    "Não existem alunos marcados como não compareceu para criar uma nova chamada.");
         }
 
         AvaliacaoEntity nova = new AvaliacaoEntity();
