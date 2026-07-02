@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -79,7 +78,6 @@ public class BoletimExportService {
 
         int qtdePeriodos = turma.getQtdePeriodos();
         String periodoLabel = qtdePeriodos == 3 ? "Trimestre" : "Bimestre";
-        int qtdeAulasPeriodo = turma.getQtdeAulasPrevistasPeriodo();
 
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("Boletim Anual");
