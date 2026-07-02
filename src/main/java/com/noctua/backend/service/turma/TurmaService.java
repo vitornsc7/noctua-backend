@@ -51,7 +51,7 @@ public class TurmaService {
     public Page<TurmaResponseDTO> listar(String emailProfessor, Pageable pageable, String turno, String anoLetivo,
             String instituicao, String disciplina) {
         ProfessorEntity professor = buscarProfessorAutenticado(emailProfessor);
-        Specification<TurmaEntity> spec = Specification.where(pertenceAoProfessor(professor.getId()))
+        Specification<TurmaEntity> spec = pertenceAoProfessor(professor.getId())
             .and(estaAtiva());
 
         if (turno != null && !turno.isBlank()) {
