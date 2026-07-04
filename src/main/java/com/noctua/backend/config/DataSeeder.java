@@ -9,6 +9,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.noctua.backend.entity.Aluno.AlunoEntity;
 import com.noctua.backend.entity.Avaliacao.AvaliacaoEntity;
@@ -46,6 +47,7 @@ public class DataSeeder implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         seedAdmin();
         ProfessorEntity professor = seedProfessor();
@@ -97,10 +99,7 @@ public class DataSeeder implements ApplicationRunner {
     private TurmaEntity seedTurma(ProfessorEntity professor) {
         if (turmaRepository.countByProfessorIdAndAtivoTrue(professor.getId()) > 0) {
             return turmaRepository
-                    .findAll()
-                    .stream()
-                    .filter(t -> t.getProfessor().getId().equals(professor.getId()) && t.getAtivo())
-                    .findFirst()
+                    .findFirstByProfessorIdAndAtivoTrue(professor.getId())
                     .orElse(null);
         }
 
@@ -186,31 +185,31 @@ public class DataSeeder implements ApplicationRunner {
         criarAvaliacaoComNotas(turma, alunos,
                 "Geometria Plana",
                 LocalDateTime.of(2026, 4, 2, 8, 0),
-                TipoAvaliacao.TRABALHO, 1, 2, 2,
+                TipoAvaliacao.TRABALHO, 1, 2, 1,
                 new Double[]{ 9.0, 8.0, 6.0, 7.5, 7.0, 9.5, 5.5, 8.5, null, 7.0, 10.0, 6.5 });
 
         criarAvaliacaoComNotas(turma, alunos,
                 "Resolução de Problemas",
                 LocalDateTime.of(2026, 4, 16, 8, 0),
-                TipoAvaliacao.ATIVIDADE, 1, 1, 3,
+                TipoAvaliacao.ATIVIDADE, 1, 1, 1,
                 new Double[]{ 7.0, 9.0, 7.5, 8.0, 5.0, 10.0, 6.0, 7.0, 9.0, 8.5, 8.0, 7.5 });
 
         criarAvaliacaoComNotas(turma, alunos,
                 "Trigonometria",
                 LocalDateTime.of(2026, 5, 20, 8, 0),
-                TipoAvaliacao.PROVA, 2, 3, 4,
+                TipoAvaliacao.PROVA, 2, 3, 1,
                 new Double[]{ 7.5, 6.0, 4.5, 9.5, 8.0, 9.0, 3.5, 7.0, 6.5, 5.5, 10.0, 4.0 });
 
         criarAvaliacaoComNotas(turma, alunos,
                 "Estatística Descritiva",
                 LocalDateTime.of(2026, 6, 3, 8, 0),
-                TipoAvaliacao.TRABALHO, 2, 2, 5,
+                TipoAvaliacao.TRABALHO, 2, 2, 1,
                 new Double[]{ 8.0, 7.5, 6.5, 9.0, 7.0, 10.0, 5.0, 8.5, 7.0, 6.5, 9.5, 5.5 });
 
         criarAvaliacaoComNotas(turma, alunos,
                 "Análise de Gráficos",
                 LocalDateTime.of(2026, 6, 17, 8, 0),
-                TipoAvaliacao.ATIVIDADE, 2, 1, 6,
+                TipoAvaliacao.ATIVIDADE, 2, 1, 1,
                 new Double[]{ 9.0, 8.5, 7.0, 8.0, 6.0, 10.0, 6.5, 9.0, 8.0, 7.5, 9.0, 6.0 });
     }
 
@@ -231,16 +230,18 @@ public class DataSeeder implements ApplicationRunner {
         AvaliacaoEntity salva = avaliacaoRepository.save(avaliacao);
 
         for (int i = 0; i < alunos.size(); i++) {
-            salvarNota(salva, alunos.get(i), valores[i] != null ? BigDecimal.valueOf(valores[i]) : null);
+            boolean naoRealizada = valores[i] == null;
+            BigDecimal valor = naoRealizada ? BigDecimal.ZERO : BigDecimal.valueOf(valores[i]);
+            salvarNota(salva, alunos.get(i), valor, naoRealizada);
         }
     }
 
-    private void salvarNota(AvaliacaoEntity avaliacao, AlunoEntity aluno, BigDecimal valor) {
+    private void salvarNota(AvaliacaoEntity avaliacao, AlunoEntity aluno, BigDecimal valor, boolean naoRealizada) {
         NotaEntity nota = new NotaEntity();
         nota.setAvaliacao(avaliacao);
         nota.setAluno(aluno);
         nota.setValor(valor);
-        nota.setNaoRealizada(valor == null);
+        nota.setNaoRealizada(naoRealizada);
         notaRepository.save(nota);
     }
 

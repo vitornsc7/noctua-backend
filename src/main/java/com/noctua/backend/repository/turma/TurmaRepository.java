@@ -18,6 +18,8 @@ public interface TurmaRepository extends JpaRepository<TurmaEntity, Long>, JpaSp
 
     boolean existsByIdAndProfessorIdAndAtivoTrue(Long id, Long professorId);
 
+    Optional<TurmaEntity> findFirstByProfessorIdAndAtivoTrue(Long professorId);
+
     @Query("SELECT DISTINCT YEAR(t.anoLetivo) FROM TurmaEntity t WHERE t.professor.id = :professorId AND t.ativo = true ORDER BY 1 DESC")
     List<Integer> findDistinctAnosByProfessorId(@Param("professorId") Long professorId);
 
