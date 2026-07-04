@@ -298,6 +298,12 @@ public class AvaliacaoService {
                 nota.setAluno(aluno);
                 notaRepository.save(nota);
             }
+
+            List<NotaEntity> todasNotas = notaRepository.findByAvaliacaoId(salva.getId());
+            boolean concluida = !todasNotas.isEmpty() && todasNotas.stream()
+                    .allMatch(n -> Boolean.TRUE.equals(n.getNaoRealizada()) || n.getValor() != null);
+            salva.setConcluida(concluida);
+            avaliacaoRepository.save(salva);
         }
 
         return toResponseDTO(salva);
