@@ -3,6 +3,7 @@ package com.noctua.backend.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -39,9 +40,9 @@ class DataSeederTest {
     // Teste 1: cria usuário admin e professor padrão quando os e-mails ainda não existem.
     @Test
     void runDeveCriarAdminEProfessorQuandoUsuariosNaoExistirem() {
-        when(usuarioRepository.existsByEmail("admin@noctua.com")).thenReturn(false);
-        when(usuarioRepository.existsByEmail("prof@noctua.com")).thenReturn(false);
-        when(passwordEncoder.encode("123")).thenReturn("senha-hash");
+        when(usuarioRepository.existsByEmail("administrador@noctua.com")).thenReturn(false);
+        when(usuarioRepository.existsByEmail("professor@noctua.com")).thenReturn(false);
+        when(passwordEncoder.encode("12345678")).thenReturn("senha-hash");
 
         dataSeeder.run(null);
 
@@ -51,13 +52,13 @@ class DataSeederTest {
         verify(adminRepository).save(adminCaptor.capture());
         verify(professorRepository).save(professorCaptor.capture());
 
-        assertEquals("Administrador", adminCaptor.getValue().getUsuario().getNome());
-        assertEquals("admin@noctua.com", adminCaptor.getValue().getUsuario().getEmail());
+        assertEquals("Admin Noctua", adminCaptor.getValue().getUsuario().getNome());
+        assertEquals("administrador@noctua.com", adminCaptor.getValue().getUsuario().getEmail());
         assertEquals("senha-hash", adminCaptor.getValue().getUsuario().getSenhaHash());
         assertEquals(true, adminCaptor.getValue().getUsuario().getAtivo());
 
-        assertEquals("Professor Padr\u00e3o", professorCaptor.getValue().getUsuario().getNome());
-        assertEquals("prof@noctua.com", professorCaptor.getValue().getUsuario().getEmail());
+        assertEquals("Professor Noctua", professorCaptor.getValue().getUsuario().getNome());
+        assertEquals("professor@noctua.com", professorCaptor.getValue().getUsuario().getEmail());
         assertEquals("senha-hash", professorCaptor.getValue().getUsuario().getSenhaHash());
         assertEquals(true, professorCaptor.getValue().getUsuario().getAtivo());
     }
@@ -65,13 +66,13 @@ class DataSeederTest {
     // Teste 2: não cria usuários padrão quando os e-mails ja existem.
     @Test
     void runNaoDeveCriarUsuariosQuandoEmailsJaExistirem() {
-        when(usuarioRepository.existsByEmail("admin@noctua.com")).thenReturn(true);
-        when(usuarioRepository.existsByEmail("prof@noctua.com")).thenReturn(true);
+        when(usuarioRepository.existsByEmail("administrador@noctua.com")).thenReturn(true);
+        when(usuarioRepository.existsByEmail("professor@noctua.com")).thenReturn(true);
 
         dataSeeder.run(null);
 
         verify(adminRepository, never()).save(org.mockito.Mockito.any());
         verify(professorRepository, never()).save(org.mockito.Mockito.any());
-        verify(passwordEncoder, never()).encode(org.mockito.Mockito.anyString());
+        verify(passwordEncoder, never()).encode(anyString());
     }
 }
