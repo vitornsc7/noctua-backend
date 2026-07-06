@@ -299,6 +299,12 @@ public class AvaliacaoService {
                 notaRepository.save(nota);
             }
 
+            List<NotaEntity> notasParaRemover = notaRepository.findByAvaliacaoId(salva.getId()).stream()
+                    .filter(n -> !request.getAlunosIds().contains(n.getAluno().getId()))
+                    .filter(n -> n.getValor() == null && !Boolean.TRUE.equals(n.getNaoRealizada()))
+                    .toList();
+            notaRepository.deleteAll(notasParaRemover);
+
             List<NotaEntity> todasNotas = notaRepository.findByAvaliacaoId(salva.getId());
             boolean concluida = !todasNotas.isEmpty() && todasNotas.stream()
                     .allMatch(n -> Boolean.TRUE.equals(n.getNaoRealizada()) || n.getValor() != null);
