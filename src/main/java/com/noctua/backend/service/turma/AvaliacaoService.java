@@ -58,6 +58,8 @@ public class AvaliacaoService {
         TurmaEntity turma = turmaRepository.findByIdAndProfessorIdAndAtivoTrue(turmaId, professor.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada"));
 
+        validarAnoLetivo(request.getData(), turma.getAnoLetivo());
+
         AvaliacaoEntity entity = new AvaliacaoEntity();
         entity.setTema(request.getTema());
         entity.setData(request.getData());
@@ -160,6 +162,13 @@ public class AvaliacaoService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Professor não encontrado"));
     }
 
+    private void validarAnoLetivo(LocalDateTime data, LocalDate anoLetivo) {
+        if (data != null && anoLetivo != null && data.getYear() != anoLetivo.getYear()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A data da avaliação deve pertencer ao ano letivo da turma (" + anoLetivo.getYear() + ").");
+        }
+    }
+
     private AvaliacaoResponseDTO toResponseDTO(AvaliacaoEntity entity) {
         AvaliacaoResponseDTO dto = new AvaliacaoResponseDTO();
         dto.setId(entity.getId());
@@ -244,6 +253,9 @@ public class AvaliacaoService {
 
         AvaliacaoEntity nova = new AvaliacaoEntity();
         nova.setTema(pai.getTema());
+        if (dataAplicacao != null) {
+            validarAnoLetivo(dataAplicacao.atStartOfDay(), pai.getTurma().getAnoLetivo());
+        }
         nova.setData(dataAplicacao != null ? dataAplicacao.atStartOfDay() : pai.getData());
         nova.setPeso(pai.getPeso());
         nova.setTipo(pai.getTipo());
@@ -272,6 +284,9 @@ public class AvaliacaoService {
         if (!avaliacao.getTurma().getId().equals(turmaId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não pertence à turma");
         }
+
+        validarAnoLetivo(request.getData(), avaliacao.getTurma().getAnoLetivo());
+
         avaliacao.setTema(request.getTema());
         avaliacao.setData(request.getData());
         avaliacao.setPeso(request.getPeso());
