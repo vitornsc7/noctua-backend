@@ -58,6 +58,8 @@ public class AvaliacaoService {
         TurmaEntity turma = turmaRepository.findByIdAndProfessorIdAndAtivoTrue(turmaId, professor.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada"));
 
+        validarAnoLetivo(request.getData(), turma.getAnoLetivo());
+
         AvaliacaoEntity entity = new AvaliacaoEntity();
         entity.setTema(request.getTema());
         entity.setData(request.getData());
@@ -160,6 +162,13 @@ public class AvaliacaoService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Professor não encontrado"));
     }
 
+    private void validarAnoLetivo(LocalDateTime data, LocalDate anoLetivo) {
+        if (data != null && anoLetivo != null && data.getYear() != anoLetivo.getYear()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A data da avaliação deve pertencer ao ano letivo da turma (" + anoLetivo.getYear() + ").");
+        }
+    }
+
     private AvaliacaoResponseDTO toResponseDTO(AvaliacaoEntity entity) {
         AvaliacaoResponseDTO dto = new AvaliacaoResponseDTO();
         dto.setId(entity.getId());
@@ -244,6 +253,9 @@ public class AvaliacaoService {
 
         AvaliacaoEntity nova = new AvaliacaoEntity();
         nova.setTema(pai.getTema());
+        if (dataAplicacao != null) {
+            validarAnoLetivo(dataAplicacao.atStartOfDay(), pai.getTurma().getAnoLetivo());
+        }
         nova.setData(dataAplicacao != null ? dataAplicacao.atStartOfDay() : pai.getData());
         nova.setPeso(pai.getPeso());
         nova.setTipo(pai.getTipo());
@@ -269,20 +281,36 @@ public class AvaliacaoService {
     public AvaliacaoResponseDTO atualizar(Long turmaId, Long avaliacaoId, AvaliacaoRequestDTO request) {
         AvaliacaoEntity avaliacao = avaliacaoRepository.findById(avaliacaoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não encontrada"));
-
         if (!avaliacao.getTurma().getId().equals(turmaId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Avaliação não pertence à turma");
         }
+
+        validarAnoLetivo(request.getData(), avaliacao.getTurma().getAnoLetivo());
 
         avaliacao.setTema(request.getTema());
         avaliacao.setData(request.getData());
         avaliacao.setPeso(request.getPeso());
         avaliacao.setTipo(request.getTipo());
         avaliacao.setPeriodo(request.getPeriodo());
-
         AvaliacaoEntity salva = avaliacaoRepository.save(avaliacao);
 
         if (request.getAlunosIds() != null) {
+
+            List<NotaEntity> notasExistentes = notaRepository.findByAvaliacaoId(salva.getId());
+            List<NotaEntity> comConflito = notasExistentes.stream()
+                    .filter(n -> !request.getAlunosIds().contains(n.getAluno().getId()))
+                    .filter(n -> n.getValor() != null || Boolean.TRUE.equals(n.getNaoRealizada()))
+                    .toList();
+
+            if (!comConflito.isEmpty()) {
+                String alunosConflito = comConflito.stream()
+                        .map(n -> n.getAluno().getId().toString())
+                        .collect(Collectors.joining(", "));
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Não é possível remover alunos com nota já lançada ou marcada como não realizada: "
+                                + alunosConflito);
+            }
+
             for (Long alunoId : request.getAlunosIds()) {
                 if (notaRepository.existsByAvaliacaoIdAndAlunoId(salva.getId(), alunoId)) {
                     continue;
@@ -290,7 +318,6 @@ public class AvaliacaoService {
                 AlunoEntity aluno = alunoRepository.findById(alunoId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Aluno não encontrado: " + alunoId));
-
                 NotaEntity nota = new NotaEntity();
                 nota.setValor(null);
                 nota.setNaoRealizada(false);
@@ -298,6 +325,11 @@ public class AvaliacaoService {
                 nota.setAluno(aluno);
                 notaRepository.save(nota);
             }
+
+            List<NotaEntity> notasParaRemover = notaRepository.findByAvaliacaoId(salva.getId()).stream()
+                    .filter(n -> !request.getAlunosIds().contains(n.getAluno().getId()))
+                    .toList();
+            notaRepository.deleteAll(notasParaRemover);
 
             List<NotaEntity> todasNotas = notaRepository.findByAvaliacaoId(salva.getId());
             boolean concluida = !todasNotas.isEmpty() && todasNotas.stream()

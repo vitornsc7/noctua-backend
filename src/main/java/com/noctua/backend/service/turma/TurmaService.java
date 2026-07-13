@@ -1,6 +1,7 @@
 package com.noctua.backend.service.turma;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -147,7 +148,9 @@ public class TurmaService {
         dto.setInstituicao(entity.getInstituicao());
 
         if (entity.getAlunos() != null) {
-            List<AlunoResponseDTO> alunosDTO = entity.getAlunos().stream().map(aluno -> {
+            List<AlunoResponseDTO> alunosDTO = entity.getAlunos().stream()
+                    .sorted(Comparator.comparing(aluno -> aluno.getNome().toLowerCase()))
+                    .map(aluno -> {
                 AlunoResponseDTO alunoDTO = new AlunoResponseDTO();
                 alunoDTO.setId(aluno.getId());
                 alunoDTO.setNome(aluno.getNome());
