@@ -33,7 +33,23 @@ public class BoletimExportController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
         headers.setContentDisposition(ContentDisposition.attachment()
-                .filename("boletim-anual-turma-" + turmaId + ".xlsx")
+                .filename(boletimExportService.gerarNomeArquivoBoletim(turmaId, null, "xlsx"))
+                .build());
+
+        return ResponseEntity.ok().headers(headers).body(bytes);
+    }
+
+    @GetMapping("/export/anual/pdf")
+    public ResponseEntity<byte[]> exportarBoletimAnualPdf(
+            Authentication authentication,
+            @PathVariable Long turmaId) {
+
+        byte[] bytes = boletimExportService.exportarBoletimAnualPdf(turmaId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(boletimExportService.gerarNomeArquivoBoletim(turmaId, null, "pdf"))
                 .build());
 
         return ResponseEntity.ok().headers(headers).body(bytes);
@@ -50,7 +66,24 @@ public class BoletimExportController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
         headers.setContentDisposition(ContentDisposition.attachment()
-                .filename("boletim-periodo-" + periodo + "-turma-" + turmaId + ".xlsx")
+                .filename(boletimExportService.gerarNomeArquivoBoletim(turmaId, periodo, "xlsx"))
+                .build());
+
+        return ResponseEntity.ok().headers(headers).body(bytes);
+    }
+
+    @GetMapping("/export/periodo/{periodo}/pdf")
+    public ResponseEntity<byte[]> exportarBoletimPeriodoPdf(
+            Authentication authentication,
+            @PathVariable Long turmaId,
+            @PathVariable Integer periodo) {
+
+        byte[] bytes = boletimExportService.exportarBoletimPeriodoPdf(turmaId, periodo);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(boletimExportService.gerarNomeArquivoBoletim(turmaId, periodo, "pdf"))
                 .build());
 
         return ResponseEntity.ok().headers(headers).body(bytes);
