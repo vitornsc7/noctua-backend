@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -200,7 +201,7 @@ class BoletimExportServiceTest {
             Sheet faltasSheet = workbook.getSheet("Detalhamento de faltas");
             assertEquals("Faltas do 1º bimestre - Turma A | Matematica", faltasSheet.getRow(0).getCell(0).getStringCellValue());
             assertEquals("Aluno", faltasSheet.getRow(1).getCell(0).getStringCellValue());
-            assertEquals("Data e períodos faltados", faltasSheet.getRow(1).getCell(1).getStringCellValue());
+            assertEquals("Bimestre, data e períodos faltados", faltasSheet.getRow(1).getCell(1).getStringCellValue());
             assertEquals("Faltas totais", faltasSheet.getRow(1).getCell(2).getStringCellValue());
             assertEquals("Ana Silva", faltasSheet.getRow(2).getCell(0).getStringCellValue());
             assertEquals("15/04/2026 - 2 faltas", faltasSheet.getRow(2).getCell(1).getStringCellValue());
@@ -246,11 +247,68 @@ class BoletimExportServiceTest {
 
             Sheet faltasSheet = workbook.getSheet("Detalhamento de faltas");
             assertEquals("Faltas do ano - Turma A | Matematica", faltasSheet.getRow(0).getCell(0).getStringCellValue());
-            assertEquals("Período, data e períodos faltados", faltasSheet.getRow(1).getCell(1).getStringCellValue());
+            assertEquals("Bimestre, data e períodos faltados", faltasSheet.getRow(1).getCell(1).getStringCellValue());
             assertEquals("1º Bimestre - 15/04/2026 - 2 faltas", faltasSheet.getRow(2).getCell(1).getStringCellValue());
             assertEquals("2º Bimestre - 20/08/2026 - 3 faltas", faltasSheet.getRow(3).getCell(1).getStringCellValue());
             assertEquals(5, (int) faltasSheet.getRow(2).getCell(2).getNumericCellValue());
         }
+    }
+
+    @Test
+    void exportarBoletimPeriodoPdfDeveGerarArquivoPdf() {
+        TurmaEntity turma = criarTurma(10L, 4, 20, "Matematica");
+        AlunoEntity aluno = criarAluno(100L, "Ana Silva", turma);
+        AvaliacaoEntity avaliacao = criarAvaliacao(50L, turma, 1, 2, TipoAvaliacao.PROVA, "Algebra");
+        NotaEntity nota = criarNota(1L, avaliacao, aluno, "8.50", false);
+        FrequenciaEntity primeiraFalta = criarFrequencia(aluno, 1L, 1, 2, LocalDateTime.of(2026, 4, 15, 8, 0));
+        FrequenciaEntity segundaFalta = criarFrequencia(aluno, 2L, 1, 1, LocalDateTime.of(2026, 4, 16, 8, 0));
+
+        when(turmaRepository.findById(10L)).thenReturn(Optional.of(turma));
+        when(alunoRepository.findByTurmaIdAndAtivo(10L, true)).thenReturn(List.of(aluno));
+        when(avaliacaoRepository.findByTurmaId(10L)).thenReturn(List.of(avaliacao));
+        when(notaRepository.findByAvaliacao_TurmaId(10L)).thenReturn(List.of(nota));
+        when(frequenciaRepository.findByAlunoIdAndAtivoTrue(100L)).thenReturn(List.of(primeiraFalta, segundaFalta));
+
+        byte[] pdf = boletimExportService.exportarBoletimPeriodoPdf(10L, 1);
+
+        assertTrue(pdf.length > 0);
+        assertEquals("%PDF", new String(pdf, 0, 4, StandardCharsets.US_ASCII));
+    }
+
+    @Test
+    void exportarBoletimAnualPdfDeveGerarArquivoPdf() {
+        TurmaEntity turma = criarTurma(10L, 4, 20, "Matematica");
+        AlunoEntity aluno = criarAluno(100L, "Ana Silva", turma);
+        AvaliacaoEntity avaliacaoP1 = criarAvaliacao(50L, turma, 1, 2, TipoAvaliacao.PROVA, "Algebra");
+        AvaliacaoEntity avaliacaoP2 = criarAvaliacao(51L, turma, 2, 1, TipoAvaliacao.TRABALHO, "Geometria");
+        NotaEntity notaP1 = criarNota(1L, avaliacaoP1, aluno, "8.50", false);
+        NotaEntity notaP2 = criarNota(2L, avaliacaoP2, aluno, "7.00", false);
+        FrequenciaEntity faltaP1 = criarFrequencia(aluno, 1L, 1, 2, LocalDateTime.of(2026, 4, 15, 8, 0));
+        FrequenciaEntity faltaP2 = criarFrequencia(aluno, 2L, 2, 3, LocalDateTime.of(2026, 8, 20, 8, 0));
+
+        when(turmaRepository.findById(10L)).thenReturn(Optional.of(turma));
+        when(alunoRepository.findByTurmaIdAndAtivo(10L, true)).thenReturn(List.of(aluno));
+        when(avaliacaoRepository.findByTurmaId(10L)).thenReturn(List.of(avaliacaoP1, avaliacaoP2));
+        when(notaRepository.findByAvaliacao_TurmaId(10L)).thenReturn(List.of(notaP1, notaP2));
+        when(frequenciaRepository.findByAlunoIdAndAtivoTrue(100L)).thenReturn(List.of(faltaP1, faltaP2));
+
+        byte[] pdf = boletimExportService.exportarBoletimAnualPdf(10L);
+
+        assertTrue(pdf.length > 0);
+        assertEquals("%PDF", new String(pdf, 0, 4, StandardCharsets.US_ASCII));
+    }
+
+    @Test
+    void gerarNomeArquivoBoletimDeveCriarNomeAmigavel() {
+        TurmaEntity turma = criarTurma(10L, 3, 20, "Matematica");
+        turma.setNome("3º Ano A - Manhã");
+
+        when(turmaRepository.findById(10L)).thenReturn(Optional.of(turma));
+
+        assertEquals("boletim-anual-3-ano-a-manha-matutino-2026.pdf",
+                boletimExportService.gerarNomeArquivoBoletim(10L, null, ".pdf"));
+        assertEquals("boletim-2-trimestre-3-ano-a-manha-matutino-2026.xlsx",
+                boletimExportService.gerarNomeArquivoBoletim(10L, 2, "xlsx"));
     }
 
     private TurmaEntity criarTurma(Long id, Integer qtdePeriodos, Integer qtdeAulasPrevistasPeriodo, String disciplina) {
