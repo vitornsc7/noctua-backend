@@ -1,7 +1,6 @@
 package com.noctua.backend.service.turma;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -13,9 +12,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -83,14 +83,16 @@ class BoletimExportServiceTest {
         byte[] arquivo = boletimExportService.exportarBoletimAnual(10L);
 
         assertTrue(arquivo.length > 0);
-        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(arquivo))) {
-            assertEquals("Boletim Anual", workbook.getSheetAt(0).getSheetName());
-            assertEquals("Ana", workbook.getSheetAt(0).getRow(3).getCell(0).getStringCellValue());
-            assertEquals(8.67, workbook.getSheetAt(0).getRow(3).getCell(1).getNumericCellValue(), 0.01);
-            assertEquals(2, (int) workbook.getSheetAt(0).getRow(3).getCell(2).getNumericCellValue());
-            assertEquals(7.00, workbook.getSheetAt(0).getRow(3).getCell(3).getNumericCellValue(), 0.01);
-            assertEquals(1, (int) workbook.getSheetAt(0).getRow(3).getCell(4).getNumericCellValue());
-            assertEquals("Bia", workbook.getSheetAt(0).getRow(4).getCell(0).getStringCellValue());
+        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(arquivo))) {
+            Sheet sheet = workbook.getSheet("Boletim Anual");
+
+            assertEquals(3, workbook.getNumberOfSheets());
+            assertEquals("Ana", sheet.getRow(3).getCell(0).getStringCellValue());
+            assertEquals(8.67, sheet.getRow(3).getCell(1).getNumericCellValue(), 0.01);
+            assertEquals(2, (int) sheet.getRow(3).getCell(2).getNumericCellValue());
+            assertEquals(7.00, sheet.getRow(3).getCell(3).getNumericCellValue(), 0.01);
+            assertEquals(1, (int) sheet.getRow(3).getCell(4).getNumericCellValue());
+            assertEquals("Bia", sheet.getRow(4).getCell(0).getStringCellValue());
         }
     }
 
@@ -117,13 +119,16 @@ class BoletimExportServiceTest {
         byte[] arquivo = boletimExportService.exportarBoletimPeriodo(10L, 1);
 
         assertTrue(arquivo.length > 0);
-        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(arquivo))) {
-            assertTrue(workbook.getSheetAt(0).getSheetName().contains("Bimestre"));
-            assertEquals("Ana", workbook.getSheetAt(0).getRow(2).getCell(0).getStringCellValue());
-            assertEquals(9.00, workbook.getSheetAt(0).getRow(2).getCell(1).getNumericCellValue(), 0.01);
-            assertEquals("-", workbook.getSheetAt(0).getRow(2).getCell(2).getStringCellValue());
-            assertEquals(9.00, workbook.getSheetAt(0).getRow(2).getCell(3).getNumericCellValue(), 0.01);
-            assertEquals("85,0%", workbook.getSheetAt(0).getRow(2).getCell(4).getStringCellValue());
+        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(arquivo))) {
+            Sheet resumoSheet = workbook.getSheetAt(0);
+            Sheet mediasSheet = workbook.getSheet("Detalhamento de médias");
+
+            assertTrue(resumoSheet.getSheetName().contains("Bimestre"));
+            assertEquals("Ana", resumoSheet.getRow(2).getCell(0).getStringCellValue());
+            assertEquals(9.00, resumoSheet.getRow(2).getCell(1).getNumericCellValue(), 0.01);
+            assertEquals("85,0%", resumoSheet.getRow(2).getCell(2).getStringCellValue());
+            assertEquals(9.00, mediasSheet.getRow(2).getCell(1).getNumericCellValue(), 0.01);
+            assertEquals("-", mediasSheet.getRow(2).getCell(2).getStringCellValue());
         }
     }
 
@@ -140,9 +145,8 @@ class BoletimExportServiceTest {
 
         byte[] arquivo = boletimExportService.exportarBoletimPeriodo(10L, 1);
 
-        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(arquivo))) {
-            Cell frequencia = workbook.getSheetAt(0).getRow(2).getCell(2);
-            assertEquals("-", frequencia.getStringCellValue());
+        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(arquivo))) {
+            assertEquals("-", workbook.getSheetAt(0).getRow(2).getCell(2).getStringCellValue());
         }
     }
 
@@ -155,6 +159,98 @@ class BoletimExportServiceTest {
                 () -> boletimExportService.exportarBoletimAnual(99L));
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+    }
+
+    @Test
+    void exportarBoletimPeriodoDeveUsarCabecalhoDescritivoEAlinharAlunoAEsquerda() throws Exception {
+        TurmaEntity turma = criarTurma(10L, 4, 20, "Matematica");
+        AlunoEntity aluno = criarAluno(100L, "Ana Silva", turma);
+        AvaliacaoEntity avaliacao = criarAvaliacao(50L, turma, 1, 2, TipoAvaliacao.PROVA, "Algebra");
+        NotaEntity nota = criarNota(1L, avaliacao, aluno, "8.50", false);
+        FrequenciaEntity primeiraFalta = criarFrequencia(aluno, 1L, 1, 2, LocalDateTime.of(2026, 4, 15, 8, 0));
+        FrequenciaEntity segundaFalta = criarFrequencia(aluno, 2L, 1, 1, LocalDateTime.of(2026, 4, 16, 8, 0));
+
+        when(turmaRepository.findById(10L)).thenReturn(Optional.of(turma));
+        when(alunoRepository.findByTurmaIdAndAtivo(10L, true)).thenReturn(List.of(aluno));
+        when(avaliacaoRepository.findByTurmaId(10L)).thenReturn(List.of(avaliacao));
+        when(notaRepository.findByAvaliacao_TurmaId(10L)).thenReturn(List.of(nota));
+        when(frequenciaRepository.findByAlunoIdAndAtivoTrue(100L)).thenReturn(List.of(primeiraFalta, segundaFalta));
+
+        byte[] bytes = boletimExportService.exportarBoletimPeriodo(10L, 1);
+
+        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(bytes))) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            assertEquals("Boletim 1º Bimestre - Turma A | Matematica", sheet.getRow(0).getCell(0).getStringCellValue());
+            assertEquals("Média", sheet.getRow(1).getCell(1).getStringCellValue());
+            assertEquals("Frequência", sheet.getRow(1).getCell(2).getStringCellValue());
+            assertTrue(sheet.getRow(1).getCell(1).getCellStyle().getWrapText());
+            assertEquals("Ana Silva", sheet.getRow(2).getCell(0).getStringCellValue());
+            assertEquals(8.5, sheet.getRow(2).getCell(1).getNumericCellValue());
+            assertEquals("85,0%", sheet.getRow(2).getCell(2).getStringCellValue());
+            assertEquals(HorizontalAlignment.LEFT, sheet.getRow(2).getCell(0).getCellStyle().getAlignment());
+
+            Sheet mediasSheet = workbook.getSheet("Detalhamento de médias");
+            assertEquals("Avaliações do 1º bimestre - Turma A | Matematica", mediasSheet.getRow(0).getCell(0).getStringCellValue());
+            assertEquals("Aluno", mediasSheet.getRow(1).getCell(0).getStringCellValue());
+            assertEquals("AV1 - Prova: Algebra (P2)", mediasSheet.getRow(1).getCell(1).getStringCellValue());
+            assertEquals("Ana Silva", mediasSheet.getRow(2).getCell(0).getStringCellValue());
+            assertEquals(8.5, mediasSheet.getRow(2).getCell(1).getNumericCellValue());
+
+            Sheet faltasSheet = workbook.getSheet("Detalhamento de faltas");
+            assertEquals("Faltas do 1º bimestre - Turma A | Matematica", faltasSheet.getRow(0).getCell(0).getStringCellValue());
+            assertEquals("Aluno", faltasSheet.getRow(1).getCell(0).getStringCellValue());
+            assertEquals("Data e períodos faltados", faltasSheet.getRow(1).getCell(1).getStringCellValue());
+            assertEquals("Faltas totais", faltasSheet.getRow(1).getCell(2).getStringCellValue());
+            assertEquals("Ana Silva", faltasSheet.getRow(2).getCell(0).getStringCellValue());
+            assertEquals("15/04/2026 - 2 faltas", faltasSheet.getRow(2).getCell(1).getStringCellValue());
+            assertEquals(3, (int) faltasSheet.getRow(2).getCell(2).getNumericCellValue());
+            assertEquals("16/04/2026 - 1 falta", faltasSheet.getRow(3).getCell(1).getStringCellValue());
+            assertEquals(3, faltasSheet.getNumMergedRegions());
+        }
+    }
+
+    @Test
+    void exportarBoletimAnualDeveUsarCabecalhosPorExtensoParaMediaEFaltas() throws Exception {
+        TurmaEntity turma = criarTurma(10L, 4, 20, "Matematica");
+        AlunoEntity aluno = criarAluno(100L, "Ana Silva", turma);
+        AvaliacaoEntity avaliacao = criarAvaliacao(50L, turma, 1, 2, TipoAvaliacao.PROVA, "Algebra");
+        NotaEntity nota = criarNota(1L, avaliacao, aluno, "8.50", false);
+        FrequenciaEntity falta = criarFrequencia(aluno, 1L, 1, 2, LocalDateTime.of(2026, 4, 15, 8, 0));
+        FrequenciaEntity segundaFalta = criarFrequencia(aluno, 2L, 2, 3, LocalDateTime.of(2026, 8, 20, 8, 0));
+
+        when(turmaRepository.findById(10L)).thenReturn(Optional.of(turma));
+        when(alunoRepository.findByTurmaIdAndAtivo(10L, true)).thenReturn(List.of(aluno));
+        when(avaliacaoRepository.findByTurmaId(10L)).thenReturn(List.of(avaliacao));
+        when(notaRepository.findByAvaliacao_TurmaId(10L)).thenReturn(List.of(nota));
+        when(frequenciaRepository.findByAlunoIdAndAtivoTrue(100L)).thenReturn(List.of(falta, segundaFalta));
+
+        byte[] bytes = boletimExportService.exportarBoletimAnual(10L);
+
+        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(bytes))) {
+            Sheet sheet = workbook.getSheet("Boletim Anual");
+
+            assertEquals(3, workbook.getNumberOfSheets());
+            assertEquals("Média", sheet.getRow(2).getCell(1).getStringCellValue());
+            assertEquals("Faltas", sheet.getRow(2).getCell(2).getStringCellValue());
+            assertEquals("Final", sheet.getRow(1).getCell(9).getStringCellValue());
+            assertEquals("Média", sheet.getRow(2).getCell(9).getStringCellValue());
+            assertEquals("Faltas", sheet.getRow(2).getCell(10).getStringCellValue());
+
+            Sheet mediasSheet = workbook.getSheet("Detalhamento de médias");
+            assertEquals("Avaliações do ano - Turma A | Matematica", mediasSheet.getRow(0).getCell(0).getStringCellValue());
+            assertEquals("Aluno", mediasSheet.getRow(1).getCell(0).getStringCellValue());
+            assertEquals("1º Bimestre - AV1\nProva: Algebra (P2)", mediasSheet.getRow(1).getCell(1).getStringCellValue());
+            assertEquals("Ana Silva", mediasSheet.getRow(2).getCell(0).getStringCellValue());
+            assertEquals(8.5, mediasSheet.getRow(2).getCell(1).getNumericCellValue());
+
+            Sheet faltasSheet = workbook.getSheet("Detalhamento de faltas");
+            assertEquals("Faltas do ano - Turma A | Matematica", faltasSheet.getRow(0).getCell(0).getStringCellValue());
+            assertEquals("Período, data e períodos faltados", faltasSheet.getRow(1).getCell(1).getStringCellValue());
+            assertEquals("1º Bimestre - 15/04/2026 - 2 faltas", faltasSheet.getRow(2).getCell(1).getStringCellValue());
+            assertEquals("2º Bimestre - 20/08/2026 - 3 faltas", faltasSheet.getRow(3).getCell(1).getStringCellValue());
+            assertEquals(5, (int) faltasSheet.getRow(2).getCell(2).getNumericCellValue());
+        }
     }
 
     private TurmaEntity criarTurma(Long id, Integer qtdePeriodos, Integer qtdeAulasPrevistasPeriodo, String disciplina) {
@@ -181,9 +277,20 @@ class BoletimExportServiceTest {
     }
 
     private AvaliacaoEntity criarAvaliacao(Long id, TurmaEntity turma, Integer periodo, Integer peso, TipoAvaliacao tipo) {
+        return criarAvaliacao(id, turma, periodo, peso, tipo, "Avaliacao " + id);
+    }
+
+    private AvaliacaoEntity criarAvaliacao(
+            Long id,
+            TurmaEntity turma,
+            Integer periodo,
+            Integer peso,
+            TipoAvaliacao tipo,
+            String tema) {
+
         AvaliacaoEntity avaliacao = new AvaliacaoEntity();
         avaliacao.setId(id);
-        avaliacao.setTema("Avaliacao " + id);
+        avaliacao.setTema(tema);
         avaliacao.setData(LocalDateTime.of(2026, 5, id.intValue() % 20 + 1, 8, 0));
         avaliacao.setPeso(peso);
         avaliacao.setTipo(tipo);
@@ -205,13 +312,23 @@ class BoletimExportServiceTest {
     }
 
     private FrequenciaEntity criarFrequencia(AlunoEntity aluno, Integer periodo, Integer periodosFaltados) {
+        return criarFrequencia(aluno, 1L, periodo, periodosFaltados, LocalDateTime.of(2026, 5, 10, 8, 0));
+    }
+
+    private FrequenciaEntity criarFrequencia(
+            AlunoEntity aluno,
+            Long id,
+            Integer periodo,
+            Integer periodosFaltados,
+            LocalDateTime dataFalta) {
+
         FrequenciaEntity frequencia = new FrequenciaEntity();
-        frequencia.setId(1L);
+        frequencia.setId(id);
         frequencia.setAluno(aluno);
         frequencia.setPeriodo(periodo);
         frequencia.setPeriodosFaltados(periodosFaltados);
         frequencia.setAtivo(true);
-        frequencia.setDataFalta(LocalDateTime.of(2026, 5, 10, 8, 0));
+        frequencia.setDataFalta(dataFalta);
         return frequencia;
     }
 }
