@@ -544,7 +544,8 @@ public class BoletimExportService {
         Sheet sheet = wb.createSheet("Detalhamento de médias");
         sheet.setColumnWidth(0, 8000);
         for (int i = 0; i < avaliacoes.size(); i++) {
-            sheet.setColumnWidth(i + 1, 2600);
+            String label = formatarCabecalhoAvaliacao(avaliacoes.get(i), i + 1);
+            ajustarLarguraColunaAoTexto(sheet, i + 1, label, 5200, 11000);
         }
 
         Row titleRow = sheet.createRow(0);
@@ -556,7 +557,7 @@ public class BoletimExportService {
         header.setHeightInPoints(30);
         criarCelula(header, 0, "Aluno", headerStyle);
         for (int i = 0; i < avaliacoes.size(); i++) {
-            criarCelula(header, i + 1, formatarCodigoAvaliacao(i), headerStyle);
+            criarCelula(header, i + 1, formatarCabecalhoAvaliacao(avaliacoes.get(i), i + 1), headerStyle);
         }
 
         int rowIdx = 2;
@@ -601,7 +602,8 @@ public class BoletimExportService {
         Sheet sheet = wb.createSheet("Detalhamento de médias");
         sheet.setColumnWidth(0, 8000);
         for (int i = 0; i < avaliacoes.size(); i++) {
-            sheet.setColumnWidth(i + 1, 2600);
+            String label = formatarCabecalhoAvaliacaoAnual(avaliacoes.get(i), avaliacoes, periodoLabel);
+            ajustarLarguraColunaAoTexto(sheet, i + 1, label, 4500, 7200);
         }
 
         Row titleRow = sheet.createRow(0);
@@ -613,7 +615,7 @@ public class BoletimExportService {
         header.setHeightInPoints(30);
         criarCelula(header, 0, "Aluno", headerStyle);
         for (int i = 0; i < avaliacoes.size(); i++) {
-            criarCelula(header, i + 1, formatarCodigoAvaliacao(i), headerStyle);
+            criarCelula(header, i + 1, formatarCabecalhoAvaliacaoAnual(avaliacoes.get(i), avaliacoes, periodoLabel), headerStyle);
         }
 
         int rowIdx = 2;
@@ -1261,6 +1263,8 @@ public class BoletimExportService {
 
         private String sanitizePdfText(String text) {
             return text == null ? "" : text
+                    .replace('\n', ' ')
+                    .replace('\r', ' ')
                     .replace('\u2013', '-')
                     .replace('\u2014', '-')
                     .replace('\u2018', '\'')
