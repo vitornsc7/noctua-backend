@@ -1,19 +1,38 @@
 package com.noctua.backend.service.turma;
 
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.batik.transcoder.TranscoderException;
+import org.apache.batik.transcoder.TranscoderInput;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.PNGTranscoder;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
@@ -21,6 +40,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFFont;
@@ -47,6 +67,10 @@ import lombok.RequiredArgsConstructor;
 public class BoletimExportService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm:ss", Locale.forLanguageTag("pt-BR"));
+    private static final ZoneId ZONE_ID = ZoneId.of("America/Sao_Paulo");
+    private static final String LOGO_RESOURCE = "/static/images/logonoctua.svg";
 
     private final TurmaRepository turmaRepository;
     private final AlunoRepository alunoRepository;
@@ -86,7 +110,7 @@ public class BoletimExportService {
         String periodoLabel = qtdePeriodos == 3 ? "Trimestre" : "Bimestre";
 
         try (Workbook wb = new XSSFWorkbook()) {
-            Sheet sheet = wb.createSheet("Boletim Anual");
+            Sheet sheet = wb.createSheet("Boletim anual");
             sheet.setColumnWidth(0, 8000);
             for (int p = 1; p <= qtdePeriodos; p++) {
                 sheet.setColumnWidth((p - 1) * 2 + 1, 3200);
@@ -111,7 +135,7 @@ public class BoletimExportService {
 
             Row titleRow = sheet.createRow(0);
             Cell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("Boletim Anual - " + turma.getNome() + (turma.getDisciplina() != null ? " | " + turma.getDisciplina() : ""));
+            titleCell.setCellValue("Boletim anual - " + turma.getNome() + (turma.getDisciplina() != null ? " | " + turma.getDisciplina() : ""));
             titleCell.setCellStyle(titleStyle);
             sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, somatorioFtCol));
 
@@ -123,7 +147,7 @@ public class BoletimExportService {
 
             for (int p = 1; p <= qtdePeriodos; p++) {
                 int mdCol = (p - 1) * 2 + 1;
-                String bimLabel = p + "º " + periodoLabel.substring(0, 3).toUpperCase();
+                String bimLabel = p + "º " + abreviarPeriodo(periodoLabel);
                 Cell periodCell = groupRow.createCell(mdCol);
                 periodCell.setCellValue(bimLabel);
                 periodCell.setCellStyle(headerStyle);
@@ -390,6 +414,39 @@ public class BoletimExportService {
         }
     }
 
+    public byte[] exportarBoletimAnualPdf(Long turmaId) {
+        return converterPlanilhaParaPdf(exportarBoletimAnual(turmaId));
+    }
+
+    public byte[] exportarBoletimPeriodoPdf(Long turmaId, Integer periodo) {
+        return converterPlanilhaParaPdf(exportarBoletimPeriodo(turmaId, periodo));
+    }
+
+    public String gerarNomeArquivoBoletim(Long turmaId, Integer periodo, String extensao) {
+        TurmaEntity turma = turmaRepository.findById(turmaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turma não encontrada"));
+
+        String tipo = periodo == null
+                ? "anual"
+                : periodo + "-" + (turma.getQtdePeriodos() == 3 ? "trimestre" : "bimestre");
+
+        String nomeTurma = slug(turma.getNome());
+        String turno = turma.getTurno() != null ? slug(turma.getTurno().name()) : "turno";
+        String ano = turma.getAnoLetivo() != null ? String.valueOf(turma.getAnoLetivo().getYear()) : "ano";
+        String extensaoLimpa = extensao != null && extensao.startsWith(".") ? extensao.substring(1) : extensao;
+
+        return "boletim-" + tipo + "-" + nomeTurma + "-" + turno + "-" + ano + "." + extensaoLimpa;
+    }
+
+    private String slug(String value) {
+        if (value == null || value.isBlank()) return "sem-nome";
+        String normalized = Normalizer.normalize(value.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+        return normalized
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
+    }
+
     private BigDecimal calcularMediaAlunoNoPeriodo(
             Long alunoId,
             Integer periodo,
@@ -487,8 +544,7 @@ public class BoletimExportService {
         Sheet sheet = wb.createSheet("Detalhamento de médias");
         sheet.setColumnWidth(0, 8000);
         for (int i = 0; i < avaliacoes.size(); i++) {
-            String label = formatarCabecalhoAvaliacao(avaliacoes.get(i), i + 1);
-            ajustarLarguraColunaAoTexto(sheet, i + 1, label, 5200, 11000);
+            sheet.setColumnWidth(i + 1, 2600);
         }
 
         Row titleRow = sheet.createRow(0);
@@ -500,7 +556,7 @@ public class BoletimExportService {
         header.setHeightInPoints(30);
         criarCelula(header, 0, "Aluno", headerStyle);
         for (int i = 0; i < avaliacoes.size(); i++) {
-            criarCelula(header, i + 1, formatarCabecalhoAvaliacao(avaliacoes.get(i), i + 1), headerStyle);
+            criarCelula(header, i + 1, formatarCodigoAvaliacao(i), headerStyle);
         }
 
         int rowIdx = 2;
@@ -524,6 +580,7 @@ public class BoletimExportService {
                 notaCell.setCellStyle(rowDataStyle);
             }
         }
+
     }
 
     private void criarAbaDetalhamentoMediasAnual(
@@ -544,8 +601,7 @@ public class BoletimExportService {
         Sheet sheet = wb.createSheet("Detalhamento de médias");
         sheet.setColumnWidth(0, 8000);
         for (int i = 0; i < avaliacoes.size(); i++) {
-            String label = formatarCabecalhoAvaliacaoAnual(avaliacoes.get(i), avaliacoes, periodoLabel);
-            ajustarLarguraColunaAoTexto(sheet, i + 1, label, 4500, 7200);
+            sheet.setColumnWidth(i + 1, 2600);
         }
 
         Row titleRow = sheet.createRow(0);
@@ -557,7 +613,7 @@ public class BoletimExportService {
         header.setHeightInPoints(30);
         criarCelula(header, 0, "Aluno", headerStyle);
         for (int i = 0; i < avaliacoes.size(); i++) {
-            criarCelula(header, i + 1, formatarCabecalhoAvaliacaoAnual(avaliacoes.get(i), avaliacoes, periodoLabel), headerStyle);
+            criarCelula(header, i + 1, formatarCodigoAvaliacao(i), headerStyle);
         }
 
         int rowIdx = 2;
@@ -581,6 +637,7 @@ public class BoletimExportService {
                 notaCell.setCellStyle(rowDataStyle);
             }
         }
+
     }
 
     private String formatarCabecalhoAvaliacaoAnual(
@@ -600,6 +657,65 @@ public class BoletimExportService {
 
         return avaliacao.getPeriodo() + "º " + periodoLabel + " - AV" + numeroNoPeriodo
                 + "\n" + formatarDescricaoAvaliacao(avaliacao);
+    }
+
+    private String formatarCodigoAvaliacao(int index) {
+        return "AV" + (index + 1);
+    }
+
+    private String abreviarPeriodo(String periodoLabel) {
+        return "Trimestre".equalsIgnoreCase(periodoLabel) ? "TRI" : "BI";
+    }
+
+    private void criarLegendaAvaliacoes(
+            Sheet sheet,
+            int startRow,
+            int lastColumn,
+            List<AvaliacaoEntity> avaliacoes,
+            List<AvaliacaoEntity> avaliacoesAnuais,
+            String periodoLabel,
+            CellStyle headerStyle,
+            CellStyle dataStyle,
+            CellStyle titleStyle) {
+
+        if (avaliacoes.isEmpty()) return;
+
+        int mergeEndColumn = Math.max(1, lastColumn);
+        Row titleRow = sheet.createRow(startRow);
+        criarCelula(titleRow, 0, "Legenda das avaliações", titleStyle);
+        sheet.addMergedRegion(new CellRangeAddress(startRow, startRow, 0, mergeEndColumn));
+
+        Row header = sheet.createRow(startRow + 1);
+        criarCelula(header, 0, "Código", headerStyle);
+        criarCelula(header, 1, "Avaliação", headerStyle);
+        if (mergeEndColumn > 1) {
+            sheet.addMergedRegion(new CellRangeAddress(startRow + 1, startRow + 1, 1, mergeEndColumn));
+        }
+
+        for (int i = 0; i < avaliacoes.size(); i++) {
+            AvaliacaoEntity avaliacao = avaliacoes.get(i);
+            Row row = sheet.createRow(startRow + 2 + i);
+            criarCelula(row, 0, formatarCodigoAvaliacao(i), dataStyle);
+            criarCelula(row, 1, formatarLegendaAvaliacao(avaliacao, avaliacoesAnuais, periodoLabel), dataStyle);
+            if (mergeEndColumn > 1) {
+                sheet.addMergedRegion(new CellRangeAddress(startRow + 2 + i, startRow + 2 + i, 1, mergeEndColumn));
+                for (int col = 2; col <= mergeEndColumn; col++) {
+                    criarCelula(row, col, "", dataStyle);
+                }
+            }
+        }
+    }
+
+    private String formatarLegendaAvaliacao(
+            AvaliacaoEntity avaliacao,
+            List<AvaliacaoEntity> avaliacoesAnuais,
+            String periodoLabel) {
+
+        if (avaliacoesAnuais == null) {
+            return formatarDescricaoAvaliacao(avaliacao);
+        }
+
+        return avaliacao.getPeriodo() + "º " + periodoLabel + " - " + formatarDescricaoAvaliacao(avaliacao);
     }
 
     private String formatarDescricaoAvaliacao(AvaliacaoEntity avaliacao) {
@@ -643,7 +759,7 @@ public class BoletimExportService {
         Row header = sheet.createRow(1);
         header.setHeightInPoints(30);
         criarCelula(header, 0, "Aluno", headerStyle);
-        criarCelula(header, 1, "Data e períodos faltados", headerStyle);
+        criarCelula(header, 1, periodoLabel + ", data e períodos faltados", headerStyle);
         criarCelula(header, 2, "Faltas totais", headerStyle);
 
         int rowIdx = 2;
@@ -709,7 +825,7 @@ public class BoletimExportService {
         Row header = sheet.createRow(1);
         header.setHeightInPoints(30);
         criarCelula(header, 0, "Aluno", headerStyle);
-        criarCelula(header, 1, "Período, data e períodos faltados", headerStyle);
+        criarCelula(header, 1, periodoLabel + ", data e períodos faltados", headerStyle);
         criarCelula(header, 2, "Faltas totais", headerStyle);
 
         int rowIdx = 2;
@@ -783,6 +899,375 @@ public class BoletimExportService {
         Cell cell = row.createCell(coluna);
         cell.setCellValue(valor);
         cell.setCellStyle(style);
+    }
+
+    private byte[] converterPlanilhaParaPdf(byte[] planilhaBytes) {
+        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(planilhaBytes));
+             PDDocument document = new PDDocument();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            PDImageXObject logo = carregarLogo(document);
+            PdfWorkbookWriter writer = new PdfWorkbookWriter(document, logo, ZonedDateTime.now(ZONE_ID));
+
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                writer.writeSheet(workbook.getSheetAt(i));
+            }
+
+            writer.close();
+            document.save(out);
+            return out.toByteArray();
+        } catch (IOException | RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao gerar PDF", e);
+        }
+    }
+
+    private PDImageXObject carregarLogo(PDDocument document) throws IOException {
+        try (InputStream in = getClass().getResourceAsStream(LOGO_RESOURCE)) {
+            if (in == null) return null;
+            String svg = new String(in.readAllBytes(), StandardCharsets.UTF_8)
+                    .replaceFirst("(?s)<!DOCTYPE[^>]*>", "");
+
+            PNGTranscoder transcoder = new PNGTranscoder();
+            transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, 96f);
+            transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, 64f);
+
+            ByteArrayOutputStream pngOut = new ByteArrayOutputStream();
+            transcoder.transcode(new TranscoderInput(new StringReader(svg)), new TranscoderOutput(pngOut));
+            return PDImageXObject.createFromByteArray(document, pngOut.toByteArray(), "logonoctua.png");
+        } catch (TranscoderException e) {
+            throw new IOException("Erro ao carregar logo do relatório", e);
+        }
+    }
+
+    private static class PdfWorkbookWriter {
+        private static final PDRectangle PAGE_SIZE = PDRectangle.A4;
+        private static final float MARGIN = 32f;
+        private static final float HEADER_HEIGHT = 72f;
+        private static final float FOOTER_HEIGHT = 28f;
+        private static final float ROW_HEIGHT = 24f;
+        private static final float HEADER_ROW_HEIGHT = 29f;
+        private static final float TABLE_FONT_SIZE = 8.4f;
+        private static final float TABLE_HEADER_FONT_SIZE = 8.8f;
+
+        private final PDDocument document;
+        private final PDImageXObject logo;
+        private final ZonedDateTime generatedAt;
+        private final DataFormatter formatter = new DataFormatter(Locale.forLanguageTag("pt-BR"));
+        private PDPageContentStream content;
+        private String sectionTitle = "";
+        private float y;
+        private int pageNumber = 0;
+
+        PdfWorkbookWriter(PDDocument document, PDImageXObject logo, ZonedDateTime generatedAt) {
+            this.document = document;
+            this.logo = logo;
+            this.generatedAt = generatedAt;
+        }
+
+        void writeSheet(Sheet sheet) throws IOException {
+            int firstRow = sheet.getFirstRowNum();
+            int lastRow = sheet.getLastRowNum();
+            int lastCell = findLastCell(sheet);
+            if (lastCell <= 0) return;
+
+            Row titleRow = sheet.getRow(firstRow);
+            String titleFromSheet = titleRow != null ? formatter.formatCellValue(titleRow.getCell(0)) : "";
+            sectionTitle = titleFromSheet == null || titleFromSheet.isBlank() ? sheet.getSheetName() : titleFromSheet;
+            addPage();
+
+            float[] widths = calculateWidths(sheet, firstRow + 1, lastRow, lastCell, PAGE_SIZE.getWidth() - (MARGIN * 2));
+            float tableX = MARGIN;
+            int visualRowIndex = 0;
+            int dataGroupIndex = -1;
+            int currentStyleIndex = 0;
+            int skipMergedLastColumnUntilRow = -1;
+            boolean mergeLastColumnGroups = isAbsenceTotalColumn(sheet, firstRow + 1, lastCell);
+
+            for (int rowIndex = firstRow + 1; rowIndex <= lastRow; rowIndex++) {
+                Row row = sheet.getRow(rowIndex);
+                if (row == null || isBlank(row, lastCell)) continue;
+
+                boolean header = visualRowIndex == 0;
+                boolean skipLastColumn = !header && mergeLastColumnGroups && rowIndex <= skipMergedLastColumnUntilRow;
+                int lastColumnSpanRows = 1;
+                if (!header) {
+                    String firstCellValue = formatter.formatCellValue(row.getCell(0));
+                    if (firstCellValue != null && !firstCellValue.isBlank()) {
+                        dataGroupIndex++;
+                    }
+                    currentStyleIndex = dataGroupIndex < 0 ? visualRowIndex : dataGroupIndex;
+
+                    if (mergeLastColumnGroups && !skipLastColumn) {
+                        lastColumnSpanRows = countLastColumnSpanRows(sheet, rowIndex, lastRow, lastCell);
+                    }
+                }
+                float height = header ? HEADER_ROW_HEIGHT : ROW_HEIGHT;
+                if (y - (height * lastColumnSpanRows) < MARGIN + FOOTER_HEIGHT) {
+                    addPage();
+                }
+                if (lastColumnSpanRows > 1) {
+                    skipMergedLastColumnUntilRow = rowIndex + lastColumnSpanRows - 1;
+                }
+                drawRow(tableX, row, widths, height, header, visualRowIndex, currentStyleIndex, lastColumnSpanRows, skipLastColumn);
+                y -= height;
+                visualRowIndex++;
+            }
+        }
+
+        void close() throws IOException {
+            if (content != null) {
+                drawFooter();
+                content.close();
+            }
+        }
+
+        private void addPage() throws IOException {
+            if (content != null) {
+                drawFooter();
+                content.close();
+            }
+
+            PDPage page = new PDPage(PAGE_SIZE);
+            document.addPage(page);
+            content = new PDPageContentStream(document, page);
+            pageNumber++;
+            y = PAGE_SIZE.getHeight() - MARGIN;
+            drawDocumentHeader();
+            y = PAGE_SIZE.getHeight() - MARGIN - HEADER_HEIGHT;
+        }
+
+        private int findLastCell(Sheet sheet) {
+            int lastCell = 0;
+            for (Row row : sheet) {
+                if (row != null) {
+                    lastCell = Math.max(lastCell, row.getLastCellNum());
+                }
+            }
+            return lastCell;
+        }
+
+        private boolean isBlank(Row row, int cellCount) {
+            for (int i = 0; i < cellCount; i++) {
+                String value = formatter.formatCellValue(row.getCell(i));
+                if (value != null && !value.isBlank()) return false;
+            }
+            return true;
+        }
+
+        private boolean isAbsenceTotalColumn(Sheet sheet, int headerRowIndex, int cellCount) {
+            Row header = sheet.getRow(headerRowIndex);
+            if (header == null || cellCount <= 0) return false;
+            String lastHeader = formatter.formatCellValue(header.getCell(cellCount - 1));
+            return "Faltas totais".equalsIgnoreCase(lastHeader);
+        }
+
+        private int countLastColumnSpanRows(Sheet sheet, int rowIndex, int lastRow, int cellCount) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null || cellCount <= 0) return 1;
+
+            String currentTotal = formatter.formatCellValue(row.getCell(cellCount - 1));
+            if (currentTotal == null || currentTotal.isBlank()) return 1;
+
+            int span = 1;
+            for (int nextRowIndex = rowIndex + 1; nextRowIndex <= lastRow; nextRowIndex++) {
+                Row nextRow = sheet.getRow(nextRowIndex);
+                if (nextRow == null || isBlank(nextRow, cellCount)) break;
+
+                String nextAluno = formatter.formatCellValue(nextRow.getCell(0));
+                String nextTotal = formatter.formatCellValue(nextRow.getCell(cellCount - 1));
+                if ((nextAluno != null && !nextAluno.isBlank()) || (nextTotal != null && !nextTotal.isBlank())) {
+                    break;
+                }
+                span++;
+            }
+            return span;
+        }
+
+        private float[] calculateWidths(Sheet sheet, int firstRow, int lastRow, int columnCount, float maxTableWidth) throws IOException {
+            float[] widths = new float[columnCount];
+            if (columnCount == 0) return widths;
+
+            for (int col = 0; col < columnCount; col++) {
+                float maxTextWidth = 0f;
+                boolean detailAbsenceColumn = false;
+                for (int rowIndex = firstRow; rowIndex <= lastRow; rowIndex++) {
+                    Row row = sheet.getRow(rowIndex);
+                    if (row == null) continue;
+                    String value = sanitizePdfText(formatter.formatCellValue(row.getCell(col)));
+                    if (value.toLowerCase(Locale.ROOT).contains("data e períodos faltados")) {
+                        detailAbsenceColumn = true;
+                    }
+                    maxTextWidth = Math.max(maxTextWidth, stringWidth(value, PDType1Font.HELVETICA_BOLD, TABLE_HEADER_FONT_SIZE));
+                }
+
+                float minWidth = detailAbsenceColumn ? 215f : (col == 0 ? 105f : 44f);
+                float maxWidth = detailAbsenceColumn ? 255f : (col == 0 ? 170f : 135f);
+                widths[col] = Math.min(maxWidth, Math.max(minWidth, maxTextWidth + 14f));
+            }
+
+            float totalWidth = 0f;
+            for (float width : widths) {
+                totalWidth += width;
+            }
+            if (totalWidth > maxTableWidth) {
+                float scale = maxTableWidth / totalWidth;
+                for (int i = 0; i < widths.length; i++) {
+                    widths[i] = Math.max(i == 0 ? 92f : 34f, widths[i] * scale);
+                }
+            }
+            return widths;
+        }
+
+        private void drawDocumentHeader() throws IOException {
+            float rightX = PAGE_SIZE.getWidth() - MARGIN;
+            float brandLeftLimit = logo != null ? rightX - 180f : rightX - 110f;
+            float titleFontSize = 12f;
+            String fittedTitle = fitText(sectionTitle, PDType1Font.HELVETICA_BOLD, titleFontSize, brandLeftLimit - MARGIN - 12f);
+            drawText(fittedTitle, MARGIN, y - 16f, PDType1Font.HELVETICA_BOLD, titleFontSize);
+
+            if (logo != null) {
+                content.drawImage(logo, rightX - 24f, y - 22f, 24f, 16f);
+            }
+
+            float brandRightX = logo != null ? rightX - 34f : rightX;
+            drawTextRight("Noctua", brandRightX, y - 18f, PDType1Font.HELVETICA_BOLD, 16f);
+
+            content.setStrokingColor(55, 81, 102);
+            content.setLineWidth(1.2f);
+            content.moveTo(MARGIN, y - 46f);
+            content.lineTo(PAGE_SIZE.getWidth() - MARGIN, y - 46f);
+            content.stroke();
+            content.setLineWidth(1f);
+        }
+        private void drawRow(
+                float startX,
+                Row row,
+                float[] widths,
+                float height,
+                boolean header,
+                int visualRowIndex,
+                int styleIndex,
+                int lastColumnSpanRows,
+                boolean skipLastColumn) throws IOException {
+            float x = startX;
+            for (int i = 0; i < widths.length; i++) {
+                String value = formatter.formatCellValue(row.getCell(i));
+                float width = widths[i];
+                if (skipLastColumn && i == widths.length - 1) {
+                    break;
+                }
+                if (header && i + 1 < widths.length && value != null && !value.isBlank()) {
+                    String nextValue = formatter.formatCellValue(row.getCell(i + 1));
+                    if (nextValue == null || nextValue.isBlank()) {
+                        width += widths[i + 1];
+                        drawCell(x, y, width, height, value, true, visualRowIndex, i == 0);
+                        x += width;
+                        i++;
+                        continue;
+                    }
+                }
+                float cellHeight = i == widths.length - 1 ? height * lastColumnSpanRows : height;
+                drawCell(x, y, width, cellHeight, value, header, styleIndex, i == 0);
+                x += width;
+            }
+        }
+
+        private void drawCell(float x, float topY, float width, float height, String text, boolean header, int visualRowIndex, boolean firstColumn) throws IOException {
+            if (header) {
+                if (visualRowIndex == 0) {
+                    content.setNonStrokingColor(55, 81, 102);
+                } else {
+                    content.setNonStrokingColor(81, 121, 153);
+                }
+                content.addRect(x, topY - height, width, height);
+                content.fill();
+                content.setNonStrokingColor(255, 255, 255);
+            } else {
+                if (visualRowIndex % 2 == 0) {
+                    content.setNonStrokingColor(255, 255, 255);
+                } else {
+                    content.setNonStrokingColor(247, 249, 251);
+                }
+                content.addRect(x, topY - height, width, height);
+                content.fill();
+                if (firstColumn) {
+                    content.setNonStrokingColor(36, 52, 64);
+                } else {
+                    content.setNonStrokingColor(52, 60, 66);
+                }
+            }
+
+            content.setStrokingColor(header ? 116 : 221, header ? 142 : 226, header ? 162 : 231);
+            content.setLineWidth(header ? 0.6f : 0.35f);
+            content.addRect(x, topY - height, width, height);
+            content.stroke();
+            content.setLineWidth(1f);
+
+            PDType1Font font = header || firstColumn ? PDType1Font.HELVETICA_BOLD : PDType1Font.HELVETICA;
+            float fontSize = header ? TABLE_HEADER_FONT_SIZE : TABLE_FONT_SIZE;
+            String fitted = fitText(sanitizePdfText(text), font, fontSize, width - 12f);
+            float textY = topY - (height / 2f) - (fontSize / 3f);
+            if (firstColumn) {
+                drawText(fitted, x + 6f, textY, font, fontSize);
+            } else {
+                drawTextCentered(fitted, x, width, textY, font, fontSize);
+            }
+        }
+
+        private String fitText(String text, PDType1Font font, float fontSize, float maxWidth) throws IOException {
+            String value = text == null ? "" : text.replace('\n', ' ');
+            if (stringWidth(value, font, fontSize) <= maxWidth) return value;
+
+            String ellipsis = "...";
+            while (!value.isEmpty() && stringWidth(value + ellipsis, font, fontSize) > maxWidth) {
+                value = value.substring(0, value.length() - 1);
+            }
+            return value.isEmpty() ? ellipsis : value + ellipsis;
+        }
+
+        private float stringWidth(String text, PDType1Font font, float fontSize) throws IOException {
+            return font.getStringWidth(text) / 1000f * fontSize;
+        }
+
+        private void drawText(String text, float x, float y, PDType1Font font, float fontSize) throws IOException {
+            content.beginText();
+            content.setFont(font, fontSize);
+            content.newLineAtOffset(x, y);
+            content.showText(sanitizePdfText(text));
+            content.endText();
+        }
+
+        private void drawTextRight(String text, float rightX, float y, PDType1Font font, float fontSize) throws IOException {
+            String value = sanitizePdfText(text);
+            float width = stringWidth(value, font, fontSize);
+            drawText(value, rightX - width, y, font, fontSize);
+        }
+
+        private void drawTextCentered(String text, float x, float width, float y, PDType1Font font, float fontSize) throws IOException {
+            String value = sanitizePdfText(text);
+            float textWidth = stringWidth(value, font, fontSize);
+            drawText(value, x + Math.max(4f, (width - textWidth) / 2f), y, font, fontSize);
+        }
+
+        private void drawFooter() throws IOException {
+            content.setStrokingColor(220, 225, 229);
+            content.moveTo(MARGIN, MARGIN + 18f);
+            content.lineTo(PAGE_SIZE.getWidth() - MARGIN, MARGIN + 18f);
+            content.stroke();
+            drawText("Relatório gerado pelo Noctua em " + DATE_TIME_FORMATTER.format(generatedAt),
+                    MARGIN, MARGIN, PDType1Font.HELVETICA, 8f);
+            drawTextRight("Página " + pageNumber, PAGE_SIZE.getWidth() - MARGIN, MARGIN, PDType1Font.HELVETICA, 8f);
+        }
+
+        private String sanitizePdfText(String text) {
+            return text == null ? "" : text
+                    .replace('\u2013', '-')
+                    .replace('\u2014', '-')
+                    .replace('\u2018', '\'')
+                    .replace('\u2019', '\'')
+                    .replace('\u201c', '"')
+                    .replace('\u201d', '"');
+        }
     }
 
     private String formatarTipoAvaliacao(AvaliacaoEntity avaliacao) {
