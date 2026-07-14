@@ -34,7 +34,7 @@ public class FrequenciaService {
 
         validarPeriodo(request.getPeriodo(), aluno);
         validarPeriodosFaltados(request.getPeriodosFaltados());
-        validarDataFalta(request.getDataFalta());
+        validarDataFalta(request.getDataFalta(), aluno.getTurma().getAnoLetivo());
 
         FrequenciaEntity frequencia = new FrequenciaEntity();
         frequencia.setDataFalta(request.getDataFalta());
@@ -88,7 +88,7 @@ public class FrequenciaService {
         }
 
         AlunoEntity aluno = buscarAluno(request.getAlunoId());
-        validarDataFalta(request.getDataFalta());
+        validarDataFalta(request.getDataFalta(), aluno.getTurma().getAnoLetivo());
 
         validarPeriodo(request.getPeriodo(), aluno);
         validarPeriodosFaltados(request.getPeriodosFaltados());
@@ -186,7 +186,7 @@ public class FrequenciaService {
                 frequencia.getAluno().getId());
     }
 
-    private void validarDataFalta(LocalDateTime dataFalta) {
+    private void validarDataFalta(LocalDateTime dataFalta, LocalDate anoLetivo) {
         if (dataFalta == null) {
             throw new RuntimeException("A data da falta é obrigatória.");
         }
@@ -196,6 +196,11 @@ public class FrequenciaService {
 
         if (dataInformada.isAfter(hojeBrasil)) {
             throw new RuntimeException("A data da falta não pode ser futura.");
+        }
+
+        if (anoLetivo != null && dataInformada.getYear() != anoLetivo.getYear()) {
+            throw new RuntimeException(
+                    "A data da falta deve pertencer ao ano letivo da turma (" + anoLetivo.getYear() + ").");
         }
     }
 }
