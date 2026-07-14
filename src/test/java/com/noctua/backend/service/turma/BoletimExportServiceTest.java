@@ -17,6 +17,8 @@ import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -299,15 +301,77 @@ class BoletimExportServiceTest {
     }
 
     @Test
+    void exportarBoletimAnualPdfDeveUsarPaisagemQuandoTabelaForLarga() throws Exception {
+        TurmaEntity turma = criarTurma(10L, 4, 20, "Matematica");
+        AlunoEntity aluno = criarAluno(100L, "Ana Silva", turma);
+        AvaliacaoEntity avaliacaoP1A = criarAvaliacao(50L, turma, 1, 2, TipoAvaliacao.PROVA, "Algebra");
+        AvaliacaoEntity avaliacaoP1B = criarAvaliacao(51L, turma, 1, 1, TipoAvaliacao.TRABALHO, "Geometria");
+        AvaliacaoEntity avaliacaoP2A = criarAvaliacao(52L, turma, 2, 2, TipoAvaliacao.PROVA, "Funcoes");
+        AvaliacaoEntity avaliacaoP2B = criarAvaliacao(53L, turma, 2, 1, TipoAvaliacao.ATIVIDADE, "Graficos");
+        AvaliacaoEntity avaliacaoP3A = criarAvaliacao(54L, turma, 3, 2, TipoAvaliacao.PROVA, "Trigonometria");
+        AvaliacaoEntity avaliacaoP3B = criarAvaliacao(55L, turma, 3, 1, TipoAvaliacao.TRABALHO, "Estatistica");
+        AvaliacaoEntity avaliacaoP4A = criarAvaliacao(56L, turma, 4, 2, TipoAvaliacao.PROVA, "Probabilidade");
+        AvaliacaoEntity avaliacaoP4B = criarAvaliacao(57L, turma, 4, 1, TipoAvaliacao.ATIVIDADE, "Revisao");
+        AvaliacaoEntity avaliacaoP1C = criarAvaliacao(58L, turma, 1, 1, TipoAvaliacao.ATIVIDADE, "Equacoes");
+        AvaliacaoEntity avaliacaoP1D = criarAvaliacao(59L, turma, 1, 1, TipoAvaliacao.TRABALHO, "Problemas");
+        AvaliacaoEntity avaliacaoP2C = criarAvaliacao(60L, turma, 2, 1, TipoAvaliacao.ATIVIDADE, "Polinomios");
+        AvaliacaoEntity avaliacaoP2D = criarAvaliacao(61L, turma, 2, 1, TipoAvaliacao.TRABALHO, "Sistemas");
+        AvaliacaoEntity avaliacaoP3C = criarAvaliacao(62L, turma, 3, 1, TipoAvaliacao.ATIVIDADE, "Razoes");
+        AvaliacaoEntity avaliacaoP3D = criarAvaliacao(63L, turma, 3, 1, TipoAvaliacao.TRABALHO, "Sequencias");
+        AvaliacaoEntity avaliacaoP4C = criarAvaliacao(64L, turma, 4, 1, TipoAvaliacao.ATIVIDADE, "Combinatoria");
+        AvaliacaoEntity avaliacaoP4D = criarAvaliacao(65L, turma, 4, 1, TipoAvaliacao.TRABALHO, "Simulado");
+
+        when(turmaRepository.findById(10L)).thenReturn(Optional.of(turma));
+        when(alunoRepository.findByTurmaIdAndAtivo(10L, true)).thenReturn(List.of(aluno));
+        when(avaliacaoRepository.findByTurmaId(10L)).thenReturn(List.of(
+                avaliacaoP1A, avaliacaoP1B, avaliacaoP2A, avaliacaoP2B,
+                avaliacaoP3A, avaliacaoP3B, avaliacaoP4A, avaliacaoP4B,
+                avaliacaoP1C, avaliacaoP1D, avaliacaoP2C, avaliacaoP2D,
+                avaliacaoP3C, avaliacaoP3D, avaliacaoP4C, avaliacaoP4D));
+        when(notaRepository.findByAvaliacao_TurmaId(10L)).thenReturn(List.of(
+                criarNota(1L, avaliacaoP1A, aluno, "8.50", false),
+                criarNota(2L, avaliacaoP1B, aluno, "9.00", false),
+                criarNota(3L, avaliacaoP2A, aluno, "7.50", false),
+                criarNota(4L, avaliacaoP2B, aluno, "8.00", false),
+                criarNota(5L, avaliacaoP3A, aluno, "9.50", false),
+                criarNota(6L, avaliacaoP3B, aluno, "8.00", false),
+                criarNota(7L, avaliacaoP4A, aluno, "7.00", false),
+                criarNota(8L, avaliacaoP4B, aluno, "8.50", false),
+                criarNota(9L, avaliacaoP1C, aluno, "8.00", false),
+                criarNota(10L, avaliacaoP1D, aluno, "7.50", false),
+                criarNota(11L, avaliacaoP2C, aluno, "9.00", false),
+                criarNota(12L, avaliacaoP2D, aluno, "8.50", false),
+                criarNota(13L, avaliacaoP3C, aluno, "7.00", false),
+                criarNota(14L, avaliacaoP3D, aluno, "8.00", false),
+                criarNota(15L, avaliacaoP4C, aluno, "9.00", false),
+                criarNota(16L, avaliacaoP4D, aluno, "8.50", false)));
+        when(frequenciaRepository.findByAlunoIdAndAtivoTrue(100L)).thenReturn(List.of());
+
+        byte[] pdf = boletimExportService.exportarBoletimAnualPdf(10L);
+
+        try (PDDocument document = PDDocument.load(pdf)) {
+            boolean possuiPaginaPaisagem = false;
+            for (PDPage page : document.getPages()) {
+                if (page.getMediaBox().getWidth() > page.getMediaBox().getHeight()) {
+                    possuiPaginaPaisagem = true;
+                    break;
+                }
+            }
+            assertTrue(possuiPaginaPaisagem);
+            assertTrue(document.getNumberOfPages() > 3);
+        }
+    }
+
+    @Test
     void gerarNomeArquivoBoletimDeveCriarNomeAmigavel() {
         TurmaEntity turma = criarTurma(10L, 3, 20, "Matematica");
         turma.setNome("3º Ano A - Manhã");
 
         when(turmaRepository.findById(10L)).thenReturn(Optional.of(turma));
 
-        assertEquals("boletim-anual-3-ano-a-manha-matutino-2026.pdf",
+        assertEquals("boletim-anual-3º Ano A - Manhã.pdf",
                 boletimExportService.gerarNomeArquivoBoletim(10L, null, ".pdf"));
-        assertEquals("boletim-2-trimestre-3-ano-a-manha-matutino-2026.xlsx",
+        assertEquals("boletim-2-trimestre-3º Ano A - Manhã.xlsx",
                 boletimExportService.gerarNomeArquivoBoletim(10L, 2, "xlsx"));
     }
 
