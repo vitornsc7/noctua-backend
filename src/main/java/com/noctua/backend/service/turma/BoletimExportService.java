@@ -8,10 +8,10 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
-import java.text.Normalizer;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -430,21 +430,18 @@ public class BoletimExportService {
                 ? "anual"
                 : periodo + "-" + (turma.getQtdePeriodos() == 3 ? "trimestre" : "bimestre");
 
-        String nomeTurma = slug(turma.getNome());
-        String turno = turma.getTurno() != null ? slug(turma.getTurno().name()) : "turno";
-        String ano = turma.getAnoLetivo() != null ? String.valueOf(turma.getAnoLetivo().getYear()) : "ano";
+        String nomeTurma = sanitizarNomeArquivo(turma.getNome());
         String extensaoLimpa = extensao != null && extensao.startsWith(".") ? extensao.substring(1) : extensao;
 
-        return "boletim-" + tipo + "-" + nomeTurma + "-" + turno + "-" + ano + "." + extensaoLimpa;
+        return "boletim-" + tipo + "-" + nomeTurma + "." + extensaoLimpa;
     }
 
-    private String slug(String value) {
+    private String sanitizarNomeArquivo(String value) {
         if (value == null || value.isBlank()) return "sem-nome";
-        String normalized = Normalizer.normalize(value.trim().toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "");
-        return normalized
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("(^-|-$)", "");
+        return value.trim()
+                .replaceAll("[\\\\/:*?\"<>|]+", "-")
+                .replaceAll("\\s+", " ")
+                .replaceAll("(^[.\\s-]+|[.\\s-]+$)", "");
     }
 
     private BigDecimal calcularMediaAlunoNoPeriodo(
@@ -942,7 +939,6 @@ public class BoletimExportService {
     }
 
     private static class PdfWorkbookWriter {
-        private static final PDRectangle PAGE_SIZE = PDRectangle.A4;
         private static final float MARGIN = 32f;
         private static final float HEADER_HEIGHT = 72f;
         private static final float FOOTER_HEIGHT = 28f;
@@ -959,6 +955,7 @@ public class BoletimExportService {
         private String sectionTitle = "";
         private float y;
         private int pageNumber = 0;
+        private PDRectangle pageSize = PDRectangle.A4;
 
         PdfWorkbookWriter(PDDocument document, PDImageXObject logo, ZonedDateTime generatedAt) {
             this.document = document;
@@ -975,15 +972,33 @@ public class BoletimExportService {
             Row titleRow = sheet.getRow(firstRow);
             String titleFromSheet = titleRow != null ? formatter.formatCellValue(titleRow.getCell(0)) : "";
             sectionTitle = titleFromSheet == null || titleFromSheet.isBlank() ? sheet.getSheetName() : titleFromSheet;
-            addPage();
+            PDRectangle sheetPageSize = resolvePageSize(lastCell);
 
-            float[] widths = calculateWidths(sheet, firstRow + 1, lastRow, lastCell, PAGE_SIZE.getWidth() - (MARGIN * 2));
+            float maxTableWidth = sheetPageSize.getWidth() - (MARGIN * 2);
+            float[] widths = calculateWidths(sheet, firstRow + 1, lastRow, lastCell);
+            List<ColumnSlice> columnSlices = buildColumnSlices(widths, maxTableWidth);
             float tableX = MARGIN;
+
+            for (ColumnSlice columnSlice : columnSlices) {
+                addPage(sheetPageSize);
+                writeRows(sheet, firstRow, lastRow, lastCell, tableX, columnSlice);
+            }
+        }
+
+        private void writeRows(
+                Sheet sheet,
+                int firstRow,
+                int lastRow,
+                int lastCell,
+                float tableX,
+                ColumnSlice columnSlice) throws IOException {
+
             int visualRowIndex = 0;
             int dataGroupIndex = -1;
             int currentStyleIndex = 0;
             int skipMergedLastColumnUntilRow = -1;
-            boolean mergeLastColumnGroups = isAbsenceTotalColumn(sheet, firstRow + 1, lastCell);
+            boolean mergeLastColumnGroups = columnSlice.containsColumn(lastCell - 1)
+                    && isAbsenceTotalColumn(sheet, firstRow + 1, lastCell);
 
             for (int rowIndex = firstRow + 1; rowIndex <= lastRow; rowIndex++) {
                 Row row = sheet.getRow(rowIndex);
@@ -1005,12 +1020,12 @@ public class BoletimExportService {
                 }
                 float height = header ? HEADER_ROW_HEIGHT : ROW_HEIGHT;
                 if (y - (height * lastColumnSpanRows) < MARGIN + FOOTER_HEIGHT) {
-                    addPage();
+                    addPage(pageSize);
                 }
                 if (lastColumnSpanRows > 1) {
                     skipMergedLastColumnUntilRow = rowIndex + lastColumnSpanRows - 1;
                 }
-                drawRow(tableX, row, widths, height, header, visualRowIndex, currentStyleIndex, lastColumnSpanRows, skipLastColumn);
+                drawRow(tableX, row, columnSlice, height, header, visualRowIndex, currentStyleIndex, lastColumnSpanRows, skipLastColumn, lastCell);
                 y -= height;
                 visualRowIndex++;
             }
@@ -1023,19 +1038,26 @@ public class BoletimExportService {
             }
         }
 
-        private void addPage() throws IOException {
+        private void addPage(PDRectangle newPageSize) throws IOException {
             if (content != null) {
                 drawFooter();
                 content.close();
             }
 
-            PDPage page = new PDPage(PAGE_SIZE);
+            pageSize = newPageSize;
+            PDPage page = new PDPage(pageSize);
             document.addPage(page);
             content = new PDPageContentStream(document, page);
             pageNumber++;
-            y = PAGE_SIZE.getHeight() - MARGIN;
+            y = pageSize.getHeight() - MARGIN;
             drawDocumentHeader();
-            y = PAGE_SIZE.getHeight() - MARGIN - HEADER_HEIGHT;
+            y = pageSize.getHeight() - MARGIN - HEADER_HEIGHT;
+        }
+
+        private PDRectangle resolvePageSize(int columnCount) {
+            return columnCount > 6
+                    ? new PDRectangle(PDRectangle.A4.getHeight(), PDRectangle.A4.getWidth())
+                    : PDRectangle.A4;
         }
 
         private int findLastCell(Sheet sheet) {
@@ -1085,7 +1107,7 @@ public class BoletimExportService {
             return span;
         }
 
-        private float[] calculateWidths(Sheet sheet, int firstRow, int lastRow, int columnCount, float maxTableWidth) throws IOException {
+        private float[] calculateWidths(Sheet sheet, int firstRow, int lastRow, int columnCount) throws IOException {
             float[] widths = new float[columnCount];
             if (columnCount == 0) return widths;
 
@@ -1095,7 +1117,8 @@ public class BoletimExportService {
                 for (int rowIndex = firstRow; rowIndex <= lastRow; rowIndex++) {
                     Row row = sheet.getRow(rowIndex);
                     if (row == null) continue;
-                    String value = sanitizePdfText(formatter.formatCellValue(row.getCell(col)));
+                    boolean header = rowIndex == firstRow;
+                    String value = sanitizePdfText(formatPdfCellValue(formatter.formatCellValue(row.getCell(col)), header));
                     if (value.toLowerCase(Locale.ROOT).contains("data e períodos faltados")) {
                         detailAbsenceColumn = true;
                     }
@@ -1107,21 +1130,145 @@ public class BoletimExportService {
                 widths[col] = Math.min(maxWidth, Math.max(minWidth, maxTextWidth + 14f));
             }
 
-            float totalWidth = 0f;
-            for (float width : widths) {
-                totalWidth += width;
-            }
-            if (totalWidth > maxTableWidth) {
-                float scale = maxTableWidth / totalWidth;
-                for (int i = 0; i < widths.length; i++) {
-                    widths[i] = Math.max(i == 0 ? 92f : 34f, widths[i] * scale);
-                }
-            }
             return widths;
         }
 
+        private List<ColumnSlice> buildColumnSlices(float[] widths, float maxTableWidth) {
+            if (widths.length == 0) {
+                return List.of();
+            }
+
+            float totalWidth = sum(widths);
+            if (totalWidth <= maxTableWidth) {
+                float[] fittedWidths = widths.clone();
+                fitWidthsToTable(fittedWidths, maxTableWidth);
+                return List.of(new ColumnSlice(allColumns(widths.length), fittedWidths));
+            }
+
+            List<ColumnSlice> slices = new ArrayList<>();
+            int nextColumn = 1;
+            while (nextColumn < widths.length) {
+                List<Integer> columns = new ArrayList<>();
+                List<Float> sliceWidths = new ArrayList<>();
+                columns.add(0);
+                sliceWidths.add(widths[0]);
+                float currentWidth = widths[0];
+
+                while (nextColumn < widths.length) {
+                    float nextWidth = widths[nextColumn];
+                    if (columns.size() > 1 && currentWidth + nextWidth > maxTableWidth) {
+                        break;
+                    }
+                    columns.add(nextColumn);
+                    sliceWidths.add(nextWidth);
+                    currentWidth += nextWidth;
+                    nextColumn++;
+                    if (currentWidth >= maxTableWidth) {
+                        break;
+                    }
+                }
+
+                float[] fittedWidths = toFloatArray(sliceWidths);
+                fitWidthsToTable(fittedWidths, maxTableWidth);
+                slices.add(new ColumnSlice(toIntArray(columns), fittedWidths));
+            }
+
+            return slices;
+        }
+
+        private int[] allColumns(int length) {
+            int[] columns = new int[length];
+            for (int i = 0; i < length; i++) {
+                columns[i] = i;
+            }
+            return columns;
+        }
+
+        private int[] toIntArray(List<Integer> values) {
+            int[] result = new int[values.size()];
+            for (int i = 0; i < values.size(); i++) {
+                result[i] = values.get(i);
+            }
+            return result;
+        }
+
+        private float[] toFloatArray(List<Float> values) {
+            float[] result = new float[values.size()];
+            for (int i = 0; i < values.size(); i++) {
+                result[i] = values.get(i);
+            }
+            return result;
+        }
+
+        private void fitWidthsToTable(float[] widths, float maxTableWidth) {
+            float totalWidth = sum(widths);
+            if (totalWidth <= maxTableWidth) {
+                expandWidthsToTable(widths, maxTableWidth - totalWidth);
+                return;
+            }
+
+            float[] minWidths = new float[widths.length];
+            for (int i = 0; i < widths.length; i++) {
+                minWidths[i] = i == 0 ? 92f : 34f;
+            }
+
+            float minTotalWidth = sum(minWidths);
+            if (minTotalWidth >= maxTableWidth) {
+                float scale = maxTableWidth / minTotalWidth;
+                for (int i = 0; i < widths.length; i++) {
+                    widths[i] = minWidths[i] * scale;
+                }
+                return;
+            }
+
+            float excess = totalWidth - maxTableWidth;
+            float shrinkable = totalWidth - minTotalWidth;
+            for (int i = 0; i < widths.length; i++) {
+                float availableShrink = widths[i] - minWidths[i];
+                widths[i] -= excess * (availableShrink / shrinkable);
+            }
+        }
+
+        private void expandWidthsToTable(float[] widths, float remainingWidth) {
+            if (remainingWidth <= 0f || widths.length == 0) {
+                return;
+            }
+
+            float totalWidth = sum(widths);
+            for (int i = 0; i < widths.length; i++) {
+                widths[i] += remainingWidth * (widths[i] / totalWidth);
+            }
+        }
+
+        private float sum(float[] values) {
+            float total = 0f;
+            for (float value : values) {
+                total += value;
+            }
+            return total;
+        }
+
+        private static class ColumnSlice {
+            private final int[] columns;
+            private final float[] widths;
+
+            private ColumnSlice(int[] columns, float[] widths) {
+                this.columns = columns;
+                this.widths = widths;
+            }
+
+            private boolean containsColumn(int column) {
+                for (int value : columns) {
+                    if (value == column) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
         private void drawDocumentHeader() throws IOException {
-            float rightX = PAGE_SIZE.getWidth() - MARGIN;
+            float rightX = pageSize.getWidth() - MARGIN;
             float brandLeftLimit = logo != null ? rightX - 180f : rightX - 110f;
             float titleFontSize = 12f;
             String fittedTitle = fitText(sectionTitle, PDType1Font.HELVETICA_BOLD, titleFontSize, brandLeftLimit - MARGIN - 12f);
@@ -1137,39 +1284,43 @@ public class BoletimExportService {
             content.setStrokingColor(55, 81, 102);
             content.setLineWidth(1.2f);
             content.moveTo(MARGIN, y - 46f);
-            content.lineTo(PAGE_SIZE.getWidth() - MARGIN, y - 46f);
+            content.lineTo(pageSize.getWidth() - MARGIN, y - 46f);
             content.stroke();
             content.setLineWidth(1f);
         }
         private void drawRow(
                 float startX,
                 Row row,
-                float[] widths,
+                ColumnSlice columnSlice,
                 float height,
                 boolean header,
                 int visualRowIndex,
                 int styleIndex,
                 int lastColumnSpanRows,
-                boolean skipLastColumn) throws IOException {
+                boolean skipLastColumn,
+                int totalCellCount) throws IOException {
             float x = startX;
-            for (int i = 0; i < widths.length; i++) {
-                String value = formatter.formatCellValue(row.getCell(i));
-                float width = widths[i];
-                if (skipLastColumn && i == widths.length - 1) {
+            for (int i = 0; i < columnSlice.columns.length; i++) {
+                int columnIndex = columnSlice.columns[i];
+                String value = formatPdfCellValue(formatter.formatCellValue(row.getCell(columnIndex)), header);
+                float width = columnSlice.widths[i];
+                boolean originalLastColumn = columnIndex == totalCellCount - 1;
+                if (skipLastColumn && originalLastColumn) {
                     break;
                 }
-                if (header && i + 1 < widths.length && value != null && !value.isBlank()) {
-                    String nextValue = formatter.formatCellValue(row.getCell(i + 1));
+                if (header && i + 1 < columnSlice.columns.length && value != null && !value.isBlank()) {
+                    int nextColumnIndex = columnSlice.columns[i + 1];
+                    String nextValue = formatPdfCellValue(formatter.formatCellValue(row.getCell(nextColumnIndex)), true);
                     if (nextValue == null || nextValue.isBlank()) {
-                        width += widths[i + 1];
-                        drawCell(x, y, width, height, value, true, visualRowIndex, i == 0);
+                        width += columnSlice.widths[i + 1];
+                        drawCell(x, y, width, height, value, true, visualRowIndex, columnIndex == 0);
                         x += width;
                         i++;
                         continue;
                     }
                 }
-                float cellHeight = i == widths.length - 1 ? height * lastColumnSpanRows : height;
-                drawCell(x, y, width, cellHeight, value, header, styleIndex, i == 0);
+                float cellHeight = originalLastColumn ? height * lastColumnSpanRows : height;
+                drawCell(x, y, width, cellHeight, value, header, styleIndex, columnIndex == 0);
                 x += width;
             }
         }
@@ -1227,6 +1378,20 @@ public class BoletimExportService {
             return value.isEmpty() ? ellipsis : value + ellipsis;
         }
 
+        private String formatPdfCellValue(String value, boolean header) {
+            if (value == null) {
+                return value;
+            }
+
+            int lineBreak = header ? value.indexOf('\n') : -1;
+            String compact = lineBreak >= 0 ? value.substring(0, lineBreak) : value;
+            return compact
+                    .replace("Bimestre", "BI")
+                    .replace("bimestre", "BI")
+                    .replace("Trimestre", "TRI")
+                    .replace("trimestre", "TRI");
+        }
+
         private float stringWidth(String text, PDType1Font font, float fontSize) throws IOException {
             return font.getStringWidth(text) / 1000f * fontSize;
         }
@@ -1254,11 +1419,11 @@ public class BoletimExportService {
         private void drawFooter() throws IOException {
             content.setStrokingColor(220, 225, 229);
             content.moveTo(MARGIN, MARGIN + 18f);
-            content.lineTo(PAGE_SIZE.getWidth() - MARGIN, MARGIN + 18f);
+            content.lineTo(pageSize.getWidth() - MARGIN, MARGIN + 18f);
             content.stroke();
             drawText("Relatório gerado pelo Noctua em " + DATE_TIME_FORMATTER.format(generatedAt),
                     MARGIN, MARGIN, PDType1Font.HELVETICA, 8f);
-            drawTextRight("Página " + pageNumber, PAGE_SIZE.getWidth() - MARGIN, MARGIN, PDType1Font.HELVETICA, 8f);
+            drawTextRight("Página " + pageNumber, pageSize.getWidth() - MARGIN, MARGIN, PDType1Font.HELVETICA, 8f);
         }
 
         private String sanitizePdfText(String text) {

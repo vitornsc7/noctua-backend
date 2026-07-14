@@ -1,5 +1,8 @@
 package com.noctua.backend.controller.turma;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -30,11 +33,9 @@ public class BoletimExportController {
 
         byte[] bytes = boletimExportService.exportarBoletimAnual(turmaId);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        headers.setContentDisposition(ContentDisposition.attachment()
-                .filename(boletimExportService.gerarNomeArquivoBoletim(turmaId, null, "xlsx"))
-                .build());
+        HttpHeaders headers = criarHeaders(
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                boletimExportService.gerarNomeArquivoBoletim(turmaId, null, "xlsx"));
 
         return ResponseEntity.ok().headers(headers).body(bytes);
     }
@@ -46,11 +47,9 @@ public class BoletimExportController {
 
         byte[] bytes = boletimExportService.exportarBoletimAnualPdf(turmaId);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDisposition(ContentDisposition.attachment()
-                .filename(boletimExportService.gerarNomeArquivoBoletim(turmaId, null, "pdf"))
-                .build());
+        HttpHeaders headers = criarHeaders(
+                MediaType.APPLICATION_PDF,
+                boletimExportService.gerarNomeArquivoBoletim(turmaId, null, "pdf"));
 
         return ResponseEntity.ok().headers(headers).body(bytes);
     }
@@ -63,11 +62,9 @@ public class BoletimExportController {
 
         byte[] bytes = boletimExportService.exportarBoletimPeriodo(turmaId, periodo);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        headers.setContentDisposition(ContentDisposition.attachment()
-                .filename(boletimExportService.gerarNomeArquivoBoletim(turmaId, periodo, "xlsx"))
-                .build());
+        HttpHeaders headers = criarHeaders(
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+                boletimExportService.gerarNomeArquivoBoletim(turmaId, periodo, "xlsx"));
 
         return ResponseEntity.ok().headers(headers).body(bytes);
     }
@@ -80,12 +77,20 @@ public class BoletimExportController {
 
         byte[] bytes = boletimExportService.exportarBoletimPeriodoPdf(turmaId, periodo);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDisposition(ContentDisposition.attachment()
-                .filename(boletimExportService.gerarNomeArquivoBoletim(turmaId, periodo, "pdf"))
-                .build());
+        HttpHeaders headers = criarHeaders(
+                MediaType.APPLICATION_PDF,
+                boletimExportService.gerarNomeArquivoBoletim(turmaId, periodo, "pdf"));
 
         return ResponseEntity.ok().headers(headers).body(bytes);
+    }
+
+    private HttpHeaders criarHeaders(MediaType contentType, String filename) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(contentType);
+        headers.setAccessControlExposeHeaders(List.of(HttpHeaders.CONTENT_DISPOSITION));
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(filename, StandardCharsets.UTF_8)
+                .build());
+        return headers;
     }
 }
