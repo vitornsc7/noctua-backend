@@ -19,6 +19,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -257,7 +258,7 @@ class BoletimExportServiceTest {
     }
 
     @Test
-    void exportarBoletimPeriodoPdfDeveGerarArquivoPdf() {
+    void exportarBoletimPeriodoPdfDeveGerarArquivoPdf() throws Exception {
         TurmaEntity turma = criarTurma(10L, 4, 20, "Matematica");
         AlunoEntity aluno = criarAluno(100L, "Ana Silva", turma);
         AvaliacaoEntity avaliacao = criarAvaliacao(50L, turma, 1, 2, TipoAvaliacao.PROVA, "Algebra");
@@ -275,10 +276,14 @@ class BoletimExportServiceTest {
 
         assertTrue(pdf.length > 0);
         assertEquals("%PDF", new String(pdf, 0, 4, StandardCharsets.US_ASCII));
+        try (PDDocument document = PDDocument.load(pdf)) {
+            String text = new PDFTextStripper().getText(document);
+            assertTrue(text.contains("Data e períodos faltados"));
+        }
     }
 
     @Test
-    void exportarBoletimAnualPdfDeveGerarArquivoPdf() {
+    void exportarBoletimAnualPdfDeveGerarArquivoPdf() throws Exception {
         TurmaEntity turma = criarTurma(10L, 4, 20, "Matematica");
         AlunoEntity aluno = criarAluno(100L, "Ana Silva", turma);
         AvaliacaoEntity avaliacaoP1 = criarAvaliacao(50L, turma, 1, 2, TipoAvaliacao.PROVA, "Algebra");
@@ -298,6 +303,10 @@ class BoletimExportServiceTest {
 
         assertTrue(pdf.length > 0);
         assertEquals("%PDF", new String(pdf, 0, 4, StandardCharsets.US_ASCII));
+        try (PDDocument document = PDDocument.load(pdf)) {
+            String text = new PDFTextStripper().getText(document);
+            assertTrue(text.contains("1º BI - 15/04/2026 - 2 faltas"));
+        }
     }
 
     @Test

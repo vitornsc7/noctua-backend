@@ -1385,11 +1385,24 @@ public class BoletimExportService {
 
             int lineBreak = header ? value.indexOf('\n') : -1;
             String compact = lineBreak >= 0 ? value.substring(0, lineBreak) : value;
+            if (header && isPeriodAbsenceSheet() && isAbsenceDetailHeader(compact)) {
+                return "Data e períodos faltados";
+            }
             return compact
                     .replace("Bimestre", "BI")
                     .replace("bimestre", "BI")
                     .replace("Trimestre", "TRI")
                     .replace("trimestre", "TRI");
+        }
+
+        private boolean isPeriodAbsenceSheet() {
+            String title = sectionTitle == null ? "" : sectionTitle.toLowerCase(Locale.ROOT);
+            return title.startsWith("faltas do ") && !title.startsWith("faltas do ano");
+        }
+
+        private boolean isAbsenceDetailHeader(String value) {
+            String normalized = value == null ? "" : value.toLowerCase(Locale.ROOT);
+            return normalized.contains("data e períodos faltados");
         }
 
         private float stringWidth(String text, PDType1Font font, float fontSize) throws IOException {
